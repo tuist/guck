@@ -213,7 +213,7 @@ async fn start_daemon(base_branch_override: Option<String>) -> Result<()> {
     // Find available port
     let port = daemon_manager.find_available_port()?;
 
-    // Check if we're already running as a daemon
+    // Check if we're already running as a daemon (child process)
     let is_daemon = std::env::var("GUCK_DAEMON").is_ok();
 
     if is_daemon {
@@ -231,52 +231,48 @@ async fn start_daemon(base_branch_override: Option<String>) -> Result<()> {
 
         server::start(port, base_branch).await?;
     } else {
-        // Fork daemon process
+        // Spawn daemon process
+        let exe = std::env::current_exe()?;
+        let log_path = daemon_manager.get_log_path(&repo_path);
+
+        let log_file = std::fs::File::create(&log_path)?;
+
         #[cfg(unix)]
         {
-            use daemonize::Daemonize;
+            use std::os::unix::process::CommandExt;
+            use std::process::{Command, Stdio};
 
-            let log_path = daemon_manager.get_log_path(&repo_path);
-            let stdout = std::fs::File::create(&log_path)?;
-            let stderr = std::fs::File::create(&log_path)?;
-
-            let daemonize = Daemonize::new()
-                .stdout(stdout)
-                .stderr(stderr)
+            // Spawn detached process
+            Command::new(exe)
+                .arg("daemon")
+                .arg("start")
+                .arg("--base")
+                .arg(&base_branch)
                 .env("GUCK_DAEMON", "1")
-                .env("GUCK_REPO_PATH", &repo_path)
-                .env("GUCK_PORT", port.to_string())
-                .env("GUCK_BASE_BRANCH", &base_branch);
-
-            match daemonize.start() {
-                Ok(_) => {
-                    // We're now in the daemon process
-                    let daemon_info = daemon::DaemonInfo {
-                        pid: process::id(),
-                        port,
-                        repo_path: repo_path.clone(),
-                        base_branch: base_branch.clone(),
-                    };
-
-                    daemon_manager.register_daemon(daemon_info)?;
-                    server::start(port, base_branch).await?;
-                }
-                Err(e) => {
-                    eprintln!("Failed to daemonize: {}", e);
-                }
-            }
+                .stdin(Stdio::null())
+                .stdout(log_file.try_clone()?)
+                .stderr(log_file)
+                .process_group(0) // Create new process group
+                .spawn()?;
         }
 
         #[cfg(not(unix))]
         {
-            // On Windows, spawn a detached process
-            let exe = std::env::current_exe()?;
-            std::process::Command::new(exe)
+            use std::process::{Command, Stdio};
+
+            Command::new(exe)
                 .arg("daemon")
                 .arg("start")
+                .arg("--base")
+                .arg(&base_branch)
                 .env("GUCK_DAEMON", "1")
+                .stdin(Stdio::null())
+                .stdout(log_file.try_clone()?)
+                .stderr(log_file)
                 .spawn()?;
         }
+
+        println!("Started daemon for {} on port {}", repo_path, port);
     }
 
     Ok(())
