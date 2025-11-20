@@ -237,42 +237,54 @@ async fn start_daemon(base_branch_override: Option<String>) -> Result<()> {
 
         let log_file = std::fs::File::create(&log_path)?;
 
-        #[cfg(unix)]
-        {
-            use std::os::unix::process::CommandExt;
-            use std::process::{Command, Stdio};
-
-            // Spawn detached process
-            Command::new(exe)
-                .arg("daemon")
-                .arg("start")
-                .arg("--base")
-                .arg(&base_branch)
-                .env("GUCK_DAEMON", "1")
-                .stdin(Stdio::null())
-                .stdout(log_file.try_clone()?)
-                .stderr(log_file)
-                .process_group(0) // Create new process group
-                .spawn()?;
+        let mut cmd_args = vec!["daemon".to_string(), "start".to_string()];
+        if let Some(ref b) = base_branch_override {
+            cmd_args.push("--base".to_string());
+            cmd_args.push(b.clone());
         }
 
-        #[cfg(not(unix))]
-        {
-            use std::process::{Command, Stdio};
+        let child = {
+            #[cfg(unix)]
+            {
+                use std::os::unix::process::CommandExt;
+                use std::process::{Command, Stdio};
 
-            Command::new(exe)
-                .arg("daemon")
-                .arg("start")
-                .arg("--base")
-                .arg(&base_branch)
-                .env("GUCK_DAEMON", "1")
-                .stdin(Stdio::null())
-                .stdout(log_file.try_clone()?)
-                .stderr(log_file)
-                .spawn()?;
-        }
+                // Spawn detached process
+                Command::new(exe)
+                    .args(&cmd_args)
+                    .env("GUCK_DAEMON", "1")
+                    .current_dir(&repo_path)
+                    .stdin(Stdio::null())
+                    .stdout(log_file.try_clone()?)
+                    .stderr(log_file)
+                    .process_group(0) // Create new process group
+                    .spawn()?
+            }
 
-        println!("Started daemon for {} on port {}", repo_path, port);
+            #[cfg(not(unix))]
+            {
+                use std::process::{Command, Stdio};
+
+                Command::new(exe)
+                    .args(&cmd_args)
+                    .env("GUCK_DAEMON", "1")
+                    .current_dir(&repo_path)
+                    .stdin(Stdio::null())
+                    .stdout(log_file.try_clone()?)
+                    .stderr(log_file)
+                    .spawn()?
+            }
+        };
+
+        // Give the daemon a moment to start and register
+        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+
+        println!(
+            "Started daemon for {} on port {} (PID: {})",
+            repo_path,
+            port,
+            child.id()
+        );
     }
 
     Ok(())
