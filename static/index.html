@@ -1,490 +1,388 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Guck - Git Diff Reviewer</title>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-            background-color: #0d1117;
-            color: #c9d1d9;
-        }
-
-        .header {
-            background-color: #161b22;
-            border-bottom: 1px solid #30363d;
-            padding: 16px 32px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .header-content {
-            max-width: 1280px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .header h1 {
-            font-size: 20px;
-            font-weight: 600;
-            color: #f0f6fc;
-        }
-
-        .repo-info {
-            display: flex;
-            gap: 16px;
-            font-size: 14px;
-            color: #8b949e;
-        }
-
-        .repo-info-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .container {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 24px 32px;
-        }
-
-        .file-list {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .file-card {
-            background-color: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 6px;
-            overflow: hidden;
-        }
-
-        .file-header {
-            padding: 12px 16px;
-            background-color: #21262d;
-            border-bottom: 1px solid #30363d;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-            user-select: none;
-        }
-
-        .file-header:hover {
-            background-color: #30363d;
-        }
-
-        .file-info {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .file-path {
-            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-            font-size: 14px;
-            color: #f0f6fc;
-        }
-
-        .file-status {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 500;
-        }
-
-        .file-status.added {
-            background-color: #238636;
-            color: #fff;
-        }
-
-        .file-status.modified {
-            background-color: #9e6a03;
-            color: #fff;
-        }
-
-        .file-status.deleted {
-            background-color: #da3633;
-            color: #fff;
-        }
-
-        .file-stats {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            font-size: 12px;
-        }
-
-        .stat {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .additions {
-            color: #3fb950;
-        }
-
-        .deletions {
-            color: #f85149;
-        }
-
-        .viewed-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 10px;
-            background-color: #1f6feb;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 500;
-            color: #fff;
-        }
-
-        .view-button {
-            padding: 6px 16px;
-            background-color: #238636;
-            color: #fff;
-            border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .view-button:hover {
-            background-color: #2ea043;
-        }
-
-        .view-button:disabled {
-            background-color: #30363d;
-            color: #8b949e;
-            cursor: not-allowed;
-        }
-
-        .file-diff {
-            padding: 0;
-            display: none;
-        }
-
-        .file-diff.expanded {
-            display: block;
-        }
-
-        .diff-content {
-            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-            font-size: 12px;
-            line-height: 20px;
-        }
-
-        .diff-line {
-            display: flex;
-            padding: 0 16px;
-        }
-
-        .diff-line.addition {
-            background-color: rgba(63, 185, 80, 0.15);
-        }
-
-        .diff-line.deletion {
-            background-color: rgba(248, 81, 73, 0.15);
-        }
-
-        .diff-line.context {
-            background-color: transparent;
-        }
-
-        .diff-line-prefix {
-            width: 20px;
-            flex-shrink: 0;
-            color: #8b949e;
-            user-select: none;
-        }
-
-        .diff-line.addition .diff-line-prefix {
-            color: #3fb950;
-        }
-
-        .diff-line.deletion .diff-line-prefix {
-            color: #f85149;
-        }
-
-        .diff-line-content {
-            flex: 1;
-            white-space: pre;
-            overflow-x: auto;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 48px;
-            color: #8b949e;
-        }
-
-        .error {
-            background-color: #da3633;
-            color: #fff;
-            padding: 16px;
-            border-radius: 6px;
-            margin-bottom: 24px;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 48px;
-            color: #8b949e;
-        }
-
-        .empty-state h2 {
-            font-size: 24px;
-            margin-bottom: 8px;
-            color: #f0f6fc;
-        }
-
-        .summary {
-            background-color: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 6px;
-            padding: 16px;
-            margin-bottom: 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .summary-stats {
-            display: flex;
-            gap: 24px;
-            font-size: 14px;
-        }
-
-        .summary-stat strong {
-            color: #f0f6fc;
-        }
-    </style>
-</head>
-<body>
-    <div id="root"></div>
-
-    <script type="text/babel">
-        const { useState, useEffect } = React;
-
-        function App() {
-            const [status, setStatus] = useState(null);
-            const [diff, setDiff] = useState(null);
-            const [loading, setLoading] = useState(true);
-            const [error, setError] = useState(null);
-            const [expandedFiles, setExpandedFiles] = useState(new Set());
-
-            useEffect(() => {
-                loadData();
-            }, []);
-
-            async function loadData() {
-                try {
-                    setLoading(true);
-                    const [statusRes, diffRes] = await Promise.all([
-                        fetch('/api/status'),
-                        fetch('/api/diff')
-                    ]);
-
-                    if (!statusRes.ok || !diffRes.ok) {
-                        throw new Error('Failed to load data');
-                    }
-
-                    const statusData = await statusRes.json();
-                    const diffData = await diffRes.json();
-
-                    setStatus(statusData);
-                    setDiff(diffData);
-                    setError(null);
-                } catch (err) {
-                    setError(err.message);
-                } finally {
-                    setLoading(false);
-                }
+<!doctype html>
+<html lang="en" data-color-mode="dark" data-dark-theme="dark">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Guck - Git Diff Reviewer</title>
+        <link
+            rel="stylesheet"
+            href="https://unpkg.com/@primer/css@^21.0.0/dist/primer.css"
+        />
+        <script
+            crossorigin
+            src="https://unpkg.com/react@18/umd/react.production.min.js"
+        ></script>
+        <script
+            crossorigin
+            src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"
+        ></script>
+        <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+        <style>
+            body {
+                background-color: #0d1117;
+                min-height: 100vh;
             }
 
-            async function markAsViewed(filePath) {
-                try {
-                    const res = await fetch('/api/mark-viewed', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ file_path: filePath }),
+            .file-diff-content {
+                font-family:
+                    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+                    "Liberation Mono", monospace;
+                font-size: 12px;
+                line-height: 20px;
+            }
+
+            .diff-line {
+                display: flex;
+                width: 100%;
+            }
+
+            .diff-line-number {
+                width: 40px;
+                padding: 0 10px;
+                text-align: right;
+                user-select: none;
+                color: #8b949e;
+                flex-shrink: 0;
+            }
+
+            .diff-line-content {
+                flex: 1;
+                padding: 0 10px;
+                white-space: pre;
+                overflow-x: auto;
+            }
+
+            .diff-line.addition {
+                background-color: rgba(46, 160, 67, 0.15);
+            }
+
+            .diff-line.addition .diff-line-number {
+                background-color: rgba(46, 160, 67, 0.15);
+            }
+
+            .diff-line.addition .diff-line-content {
+                color: #c9d1d9;
+            }
+
+            .diff-line.deletion {
+                background-color: rgba(248, 81, 73, 0.15);
+            }
+
+            .diff-line.deletion .diff-line-number {
+                background-color: rgba(248, 81, 73, 0.15);
+            }
+
+            .diff-line.deletion .diff-line-content {
+                color: #c9d1d9;
+            }
+
+            .diff-line.context {
+                background-color: transparent;
+            }
+
+            .file-header-container {
+                cursor: pointer;
+                user-select: none;
+            }
+
+            .file-header-container:hover {
+                background-color: #161b22;
+            }
+
+            .counter-label {
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="root"></div>
+
+        <script type="text/babel">
+            const { useState, useEffect } = React;
+
+            function App() {
+                const [status, setStatus] = useState(null);
+                const [diff, setDiff] = useState(null);
+                const [loading, setLoading] = useState(true);
+                const [error, setError] = useState(null);
+                const [expandedFiles, setExpandedFiles] = useState(new Set());
+
+                useEffect(() => {
+                    loadData();
+                }, []);
+
+                async function loadData() {
+                    try {
+                        setLoading(true);
+                        const [statusRes, diffRes] = await Promise.all([
+                            fetch("/api/status"),
+                            fetch("/api/diff"),
+                        ]);
+
+                        if (!statusRes.ok || !diffRes.ok) {
+                            throw new Error("Failed to load data");
+                        }
+
+                        const statusData = await statusRes.json();
+                        const diffData = await diffRes.json();
+
+                        setStatus(statusData);
+                        setDiff(diffData);
+                        setError(null);
+                    } catch (err) {
+                        setError(err.message);
+                    } finally {
+                        setLoading(false);
+                    }
+                }
+
+                async function markAsViewed(filePath) {
+                    try {
+                        const res = await fetch("/api/mark-viewed", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({ file_path: filePath }),
+                        });
+
+                        if (!res.ok) {
+                            throw new Error("Failed to mark file as viewed");
+                        }
+
+                        setDiff((prev) => ({
+                            ...prev,
+                            files: prev.files.map((f) =>
+                                f.path === filePath
+                                    ? { ...f, viewed: true }
+                                    : f,
+                            ),
+                        }));
+                    } catch (err) {
+                        setError(err.message);
+                    }
+                }
+
+                function toggleFile(filePath) {
+                    setExpandedFiles((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(filePath)) {
+                            next.delete(filePath);
+                        } else {
+                            next.add(filePath);
+                        }
+                        return next;
                     });
-
-                    if (!res.ok) {
-                        throw new Error('Failed to mark file as viewed');
-                    }
-
-                    // Update local state
-                    setDiff(prev => ({
-                        ...prev,
-                        files: prev.files.map(f =>
-                            f.path === filePath ? { ...f, viewed: true } : f
-                        )
-                    }));
-                } catch (err) {
-                    setError(err.message);
-                }
-            }
-
-            function toggleFile(filePath) {
-                setExpandedFiles(prev => {
-                    const next = new Set(prev);
-                    if (next.has(filePath)) {
-                        next.delete(filePath);
-                    } else {
-                        next.add(filePath);
-                    }
-                    return next;
-                });
-            }
-
-            function renderDiffLine(line, index) {
-                const prefix = line[0];
-                const content = line.slice(1);
-                let lineClass = 'context';
-
-                if (prefix === '+') {
-                    lineClass = 'addition';
-                } else if (prefix === '-') {
-                    lineClass = 'deletion';
                 }
 
-                return (
-                    <div key={index} className={`diff-line ${lineClass}`}>
-                        <span className="diff-line-prefix">{prefix}</span>
-                        <span className="diff-line-content">{content}</span>
-                    </div>
-                );
-            }
+                function renderDiffLine(line, index) {
+                    const prefix = line[0];
+                    const content = line.slice(1);
+                    let lineClass = "context";
 
-            if (loading) {
-                return <div className="loading">Loading diff...</div>;
-            }
+                    if (prefix === "+") {
+                        lineClass = "addition";
+                    } else if (prefix === "-") {
+                        lineClass = "deletion";
+                    }
 
-            if (error) {
-                return (
-                    <div className="container">
-                        <div className="error">Error: {error}</div>
-                    </div>
-                );
-            }
+                    return (
+                        <div key={index} className={`diff-line ${lineClass}`}>
+                            <span className="diff-line-number">
+                                {index + 1}
+                            </span>
+                            <span className="diff-line-content">{content}</span>
+                        </div>
+                    );
+                }
 
-            const viewedCount = diff?.files.filter(f => f.viewed).length || 0;
-            const totalCount = diff?.files.length || 0;
+                function getStatusLabel(status) {
+                    const statusMap = {
+                        added: { label: "Added", color: "success" },
+                        modified: { label: "Modified", color: "attention" },
+                        deleted: { label: "Deleted", color: "danger" },
+                        renamed: { label: "Renamed", color: "accent" },
+                    };
+                    return (
+                        statusMap[status] || { label: status, color: "default" }
+                    );
+                }
 
-            return (
-                <>
-                    <header className="header">
-                        <div className="header-content">
-                            <h1>Guck</h1>
-                            <div className="repo-info">
-                                <div className="repo-info-item">
-                                    <strong>Branch:</strong> {diff?.branch}
-                                </div>
-                                <div className="repo-info-item">
-                                    <strong>Commit:</strong> {diff?.commit.slice(0, 7)}
-                                </div>
+                if (loading) {
+                    return (
+                        <div className="container-lg p-4">
+                            <div className="Subhead">
+                                <h1 className="Subhead-heading">
+                                    Loading diff...
+                                </h1>
                             </div>
                         </div>
-                    </header>
+                    );
+                }
 
-                    <div className="container">
+                if (error) {
+                    return (
+                        <div className="container-lg p-4">
+                            <div className="flash flash-error">
+                                <strong>Error:</strong> {error}
+                            </div>
+                        </div>
+                    );
+                }
+
+                const viewedCount =
+                    diff?.files.filter((f) => f.viewed).length || 0;
+                const totalCount = diff?.files.length || 0;
+
+                return (
+                    <div className="container-lg p-4">
+                        <div className="Subhead mb-4">
+                            <div className="Subhead-heading">
+                                <span className="text-bold">Guck</span>
+                                <span className="text-normal ml-2">
+                                    Diff Reviewer
+                                </span>
+                            </div>
+                            <div className="Subhead-description mt-1">
+                                <span className="Label Label--secondary mr-2">
+                                    Branch: {diff?.branch}
+                                </span>
+                                <span className="Label Label--secondary">
+                                    Commit: {diff?.commit.slice(0, 7)}
+                                </span>
+                            </div>
+                        </div>
+
                         {diff && diff.files.length > 0 ? (
                             <>
-                                <div className="summary">
-                                    <div className="summary-stats">
-                                        <div className="summary-stat">
-                                            <strong>{totalCount}</strong> file{totalCount !== 1 ? 's' : ''} changed
-                                        </div>
-                                        <div className="summary-stat">
-                                            <strong>{viewedCount}</strong> reviewed
+                                <div className="Box mb-3">
+                                    <div className="Box-row d-flex flex-justify-between flex-items-center">
+                                        <div className="d-flex flex-items-center gap-3">
+                                            <strong>{totalCount}</strong> file
+                                            {totalCount !== 1 ? "s" : ""}{" "}
+                                            changed
+                                            <span className="counter-label">
+                                                <span className="Counter Counter--success">
+                                                    {viewedCount}
+                                                </span>
+                                                <span className="text-small color-fg-muted">
+                                                    reviewed
+                                                </span>
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="file-list">
-                                    {diff.files.map(file => (
-                                        <div key={file.path} className="file-card">
-                                            <div className="file-header" onClick={() => toggleFile(file.path)}>
-                                                <div className="file-info">
-                                                    <span className="file-path">{file.path}</span>
-                                                    <span className={`file-status ${file.status}`}>
-                                                        {file.status}
-                                                    </span>
-                                                    <div className="file-stats">
-                                                        <span className="stat additions">
-                                                            +{file.additions}
-                                                        </span>
-                                                        <span className="stat deletions">
-                                                            -{file.deletions}
-                                                        </span>
+                                <div className="d-flex flex-column gap-3">
+                                    {diff.files.map((file) => {
+                                        const statusInfo = getStatusLabel(
+                                            file.status,
+                                        );
+                                        const isExpanded = expandedFiles.has(
+                                            file.path,
+                                        );
+
+                                        return (
+                                            <div
+                                                key={file.path}
+                                                className="Box"
+                                            >
+                                                <div
+                                                    className="Box-header file-header-container"
+                                                    onClick={() =>
+                                                        toggleFile(file.path)
+                                                    }
+                                                >
+                                                    <div className="d-flex flex-justify-between flex-items-center">
+                                                        <div className="d-flex flex-items-center gap-2">
+                                                            <span className="text-mono text-bold">
+                                                                {file.path}
+                                                            </span>
+                                                            <span
+                                                                className={`Label Label--${statusInfo.color}`}
+                                                            >
+                                                                {
+                                                                    statusInfo.label
+                                                                }
+                                                            </span>
+                                                            <span className="text-small color-fg-success">
+                                                                +
+                                                                {file.additions}
+                                                            </span>
+                                                            <span className="text-small color-fg-danger">
+                                                                -
+                                                                {file.deletions}
+                                                            </span>
+                                                        </div>
+                                                        <div className="d-flex flex-items-center gap-2">
+                                                            {file.viewed && (
+                                                                <span className="Label Label--primary">
+                                                                    ✓ Viewed
+                                                                </span>
+                                                            )}
+                                                            <button
+                                                                className={`btn btn-sm ${file.viewed ? "btn-invisible" : "btn-primary"}`}
+                                                                onClick={(
+                                                                    e,
+                                                                ) => {
+                                                                    e.stopPropagation();
+                                                                    markAsViewed(
+                                                                        file.path,
+                                                                    );
+                                                                }}
+                                                                disabled={
+                                                                    file.viewed
+                                                                }
+                                                            >
+                                                                {file.viewed
+                                                                    ? "Viewed"
+                                                                    : "Mark as viewed"}
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                                                    {file.viewed && (
-                                                        <span className="viewed-badge">
-                                                            ✓ Viewed
-                                                        </span>
-                                                    )}
-                                                    <button
-                                                        className="view-button"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            markAsViewed(file.path);
-                                                        }}
-                                                        disabled={file.viewed}
-                                                    >
-                                                        {file.viewed ? 'Viewed' : 'Mark as viewed'}
-                                                    </button>
-                                                </div>
+                                                {isExpanded && (
+                                                    <div className="Box-body p-0">
+                                                        <div className="file-diff-content">
+                                                            {file.patch
+                                                                .split("\n")
+                                                                .map(
+                                                                    (
+                                                                        line,
+                                                                        index,
+                                                                    ) =>
+                                                                        renderDiffLine(
+                                                                            line,
+                                                                            index,
+                                                                        ),
+                                                                )}
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
-                                            <div className={`file-diff ${expandedFiles.has(file.path) ? 'expanded' : ''}`}>
-                                                <div className="diff-content">
-                                                    {file.patch.split('\n').map((line, index) =>
-                                                        renderDiffLine(line, index)
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             </>
                         ) : (
-                            <div className="empty-state">
-                                <h2>No changes</h2>
-                                <p>There are no differences between your current branch and main.</p>
+                            <div className="blankslate">
+                                <h3 className="blankslate-heading">
+                                    No changes
+                                </h3>
+                                <p>
+                                    There are no differences between your
+                                    current branch and main.
+                                </p>
                             </div>
                         )}
                     </div>
-                </>
-            );
-        }
+                );
+            }
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
-</body>
+            const root = ReactDOM.createRoot(document.getElementById("root"));
+            root.render(<App />);
+        </script>
+    </body>
 </html>
