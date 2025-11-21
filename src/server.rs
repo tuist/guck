@@ -42,6 +42,23 @@ struct MarkViewedRequest {
     file_path: String,
 }
 
+#[derive(Deserialize)]
+struct AddCommentRequest {
+    file_path: String,
+    line_number: Option<usize>,
+    text: String,
+}
+
+#[derive(Deserialize)]
+struct GetCommentsQuery {
+    file_path: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct ResolveCommentRequest {
+    comment_id: String,
+}
+
 pub async fn start(port: u16, base_branch: String) -> Result<()> {
     // Get repo path once at startup
     use crate::git::GitRepo;
@@ -62,7 +79,11 @@ pub async fn start(port: u16, base_branch: String) -> Result<()> {
         .route("/", get(index_handler))
         .route("/api/diff", get(diff_handler))
         .route("/api/mark-viewed", post(mark_viewed_handler))
+        .route("/api/unmark-viewed", post(unmark_viewed_handler))
         .route("/api/status", get(status_handler))
+        .route("/api/comments", get(get_comments_handler))
+        .route("/api/comments", post(add_comment_handler))
+        .route("/api/comments/resolve", post(resolve_comment_handler))
         .with_state(app_state)
         .layer(TraceLayer::new_for_http());
 
@@ -140,6 +161,27 @@ async fn mark_viewed_handler(
     Ok(StatusCode::OK)
 }
 
+async fn unmark_viewed_handler(
+    State(state): State<AppState>,
+    Json(payload): Json<MarkViewedRequest>,
+) -> Result<StatusCode, AppError> {
+    use crate::git::GitRepo;
+
+    let git_repo = GitRepo::open(".")?;
+    let current_branch = git_repo.current_branch()?;
+    let current_commit = git_repo.current_commit()?;
+
+    let mut state_manager = state.state_manager.lock().unwrap();
+    state_manager.unmark_file_viewed(
+        &state.repo_path,
+        &current_branch,
+        &current_commit,
+        &payload.file_path,
+    )?;
+
+    Ok(StatusCode::OK)
+}
+
 #[derive(Serialize)]
 struct StatusResponse {
     repo_path: String,
@@ -156,6 +198,71 @@ async fn status_handler(State(state): State<AppState>) -> Result<Json<StatusResp
         branch: git_repo.current_branch()?,
         commit: git_repo.current_commit()?,
     }))
+}
+
+async fn get_comments_handler(
+    State(state): State<AppState>,
+    axum::extract::Query(query): axum::extract::Query<GetCommentsQuery>,
+) -> Result<Json<Vec<crate::state::Comment>>, AppError> {
+    use crate::git::GitRepo;
+
+    let git_repo = GitRepo::open(".")?;
+    let current_branch = git_repo.current_branch()?;
+    let current_commit = git_repo.current_commit()?;
+
+    let state_manager = state.state_manager.lock().unwrap();
+    let comments = state_manager.get_comments(
+        &state.repo_path,
+        &current_branch,
+        &current_commit,
+        query.file_path.as_deref(),
+    )?;
+
+    Ok(Json(comments))
+}
+
+async fn add_comment_handler(
+    State(state): State<AppState>,
+    Json(payload): Json<AddCommentRequest>,
+) -> Result<Json<crate::state::Comment>, AppError> {
+    use crate::git::GitRepo;
+
+    let git_repo = GitRepo::open(".")?;
+    let current_branch = git_repo.current_branch()?;
+    let current_commit = git_repo.current_commit()?;
+
+    let mut state_manager = state.state_manager.lock().unwrap();
+    let comment = state_manager.add_comment(
+        &state.repo_path,
+        &current_branch,
+        &current_commit,
+        &payload.file_path,
+        payload.line_number,
+        payload.text,
+    )?;
+
+    Ok(Json(comment))
+}
+
+async fn resolve_comment_handler(
+    State(state): State<AppState>,
+    Json(payload): Json<ResolveCommentRequest>,
+) -> Result<StatusCode, AppError> {
+    use crate::git::GitRepo;
+
+    let git_repo = GitRepo::open(".")?;
+    let current_branch = git_repo.current_branch()?;
+    let current_commit = git_repo.current_commit()?;
+
+    let mut state_manager = state.state_manager.lock().unwrap();
+    state_manager.resolve_comment(
+        &state.repo_path,
+        &current_branch,
+        &current_commit,
+        &payload.comment_id,
+    )?;
+
+    Ok(StatusCode::OK)
 }
 
 // Error handling

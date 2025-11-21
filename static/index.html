@@ -17,6 +17,20 @@
             src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"
         ></script>
         <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css"
+        />
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-jsx.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-tsx.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-rust.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-yaml.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markdown.min.js"></script>
         <style>
             body {
                 background-color: #0d1117;
@@ -29,11 +43,15 @@
                     "Liberation Mono", monospace;
                 font-size: 12px;
                 line-height: 20px;
+                overflow-x: auto;
+                padding-left: 32px;
+                margin-left: -32px;
             }
 
             .diff-line {
                 display: flex;
                 width: 100%;
+                min-width: max-content;
             }
 
             .diff-line-number {
@@ -108,6 +126,62 @@
             .file-header-items > *:first-child {
                 padding-left: 0 !important;
             }
+
+            .diff-line-wrapper {
+                position: relative;
+                padding-left: 32px;
+            }
+
+            .diff-line-wrapper:hover .add-comment-btn {
+                opacity: 1;
+            }
+
+            .add-comment-btn {
+                position: absolute;
+                left: -32px;
+                top: 50%;
+                transform: translateY(-50%);
+                opacity: 0;
+                transition: opacity 0.1s;
+                width: 22px;
+                height: 22px;
+                border-radius: 50%;
+                background-color: #0969da;
+                color: white;
+                border: none;
+                cursor: pointer;
+                font-size: 16px;
+                line-height: 1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 0;
+            }
+
+            .add-comment-btn:hover {
+                background-color: #0860ca;
+            }
+
+            .comment-form {
+                background-color: #161b22;
+                border: 1px solid #30363d;
+                border-radius: 6px;
+                margin: 8px 40px 8px 40px;
+                padding: 16px;
+            }
+
+            .comment-display {
+                background-color: #161b22;
+                border: 1px solid #30363d;
+                border-radius: 6px;
+                margin: 8px 40px 8px 40px;
+                padding: 12px 16px;
+            }
+
+            .comment-form textarea {
+                width: 100% !important;
+                box-sizing: border-box;
+            }
         </style>
     </head>
     <body>
@@ -122,6 +196,10 @@
                 const [loading, setLoading] = useState(true);
                 const [error, setError] = useState(null);
                 const [expandedFiles, setExpandedFiles] = useState(new Set());
+                const [comments, setComments] = useState({});
+                const [commentText, setCommentText] = useState({});
+                const [activeCommentLine, setActiveCommentLine] =
+                    useState(null);
 
                 useEffect(() => {
                     loadData();
@@ -130,20 +208,34 @@
                 async function loadData() {
                     try {
                         setLoading(true);
-                        const [statusRes, diffRes] = await Promise.all([
-                            fetch("/api/status"),
-                            fetch("/api/diff"),
-                        ]);
+                        const [statusRes, diffRes, commentsRes] =
+                            await Promise.all([
+                                fetch("/api/status"),
+                                fetch("/api/diff"),
+                                fetch("/api/comments"),
+                            ]);
 
-                        if (!statusRes.ok || !diffRes.ok) {
+                        if (!statusRes.ok || !diffRes.ok || !commentsRes.ok) {
                             throw new Error("Failed to load data");
                         }
 
                         const statusData = await statusRes.json();
                         const diffData = await diffRes.json();
+                        const commentsData = await commentsRes.json();
 
                         setStatus(statusData);
                         setDiff(diffData);
+
+                        // Group comments by file_path
+                        const commentsByFile = {};
+                        commentsData.forEach((comment) => {
+                            if (!commentsByFile[comment.file_path]) {
+                                commentsByFile[comment.file_path] = [];
+                            }
+                            commentsByFile[comment.file_path].push(comment);
+                        });
+                        setComments(commentsByFile);
+
                         setError(null);
                     } catch (err) {
                         setError(err.message);
@@ -152,9 +244,12 @@
                     }
                 }
 
-                async function markAsViewed(filePath) {
+                async function toggleViewed(filePath, currentlyViewed) {
                     try {
-                        const res = await fetch("/api/mark-viewed", {
+                        const endpoint = currentlyViewed
+                            ? "/api/unmark-viewed"
+                            : "/api/mark-viewed";
+                        const res = await fetch(endpoint, {
                             method: "POST",
                             headers: {
                                 "Content-Type": "application/json",
@@ -163,17 +258,105 @@
                         });
 
                         if (!res.ok) {
-                            throw new Error("Failed to mark file as viewed");
+                            throw new Error("Failed to update viewed status");
                         }
 
                         setDiff((prev) => ({
                             ...prev,
                             files: prev.files.map((f) =>
                                 f.path === filePath
-                                    ? { ...f, viewed: true }
+                                    ? { ...f, viewed: !currentlyViewed }
                                     : f,
                             ),
                         }));
+
+                        // Collapse the file when marking as viewed
+                        if (!currentlyViewed) {
+                            setExpandedFiles((prev) => {
+                                const next = new Set(prev);
+                                next.delete(filePath);
+                                return next;
+                            });
+                        }
+                    } catch (err) {
+                        setError(err.message);
+                    }
+                }
+
+                async function addComment(filePath, lineNumber = null) {
+                    const key =
+                        lineNumber !== null
+                            ? `${filePath}:${lineNumber}`
+                            : filePath;
+                    const text = commentText[key];
+                    if (!text || !text.trim()) return;
+
+                    try {
+                        const res = await fetch("/api/comments", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({
+                                file_path: filePath,
+                                line_number: lineNumber,
+                                text: text.trim(),
+                            }),
+                        });
+
+                        if (!res.ok) {
+                            throw new Error("Failed to add comment");
+                        }
+
+                        const newComment = await res.json();
+
+                        setComments((prev) => ({
+                            ...prev,
+                            [filePath]: [...(prev[filePath] || []), newComment],
+                        }));
+
+                        setCommentText((prev) => ({
+                            ...prev,
+                            [key]: "",
+                        }));
+
+                        setActiveCommentLine(null);
+                    } catch (err) {
+                        setError(err.message);
+                    }
+                }
+
+                async function resolveComment(commentId) {
+                    try {
+                        const res = await fetch("/api/comments/resolve", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({
+                                comment_id: commentId,
+                            }),
+                        });
+
+                        if (!res.ok) {
+                            throw new Error("Failed to resolve comment");
+                        }
+
+                        // Update local state to mark comment as resolved
+                        setComments((prev) => {
+                            const updated = {};
+                            for (const [
+                                filePath,
+                                fileComments,
+                            ] of Object.entries(prev)) {
+                                updated[filePath] = fileComments.map((c) =>
+                                    c.id === commentId
+                                        ? { ...c, resolved: true }
+                                        : c,
+                                );
+                            }
+                            return updated;
+                        });
                     } catch (err) {
                         setError(err.message);
                     }
@@ -191,7 +374,26 @@
                     });
                 }
 
-                function renderDiffLine(line, index) {
+                function getLanguageFromPath(filePath) {
+                    const ext = filePath.split(".").pop().toLowerCase();
+                    const langMap = {
+                        js: "javascript",
+                        jsx: "jsx",
+                        ts: "typescript",
+                        tsx: "tsx",
+                        rs: "rust",
+                        py: "python",
+                        json: "json",
+                        yaml: "yaml",
+                        yml: "yaml",
+                        md: "markdown",
+                        html: "markup",
+                        css: "css",
+                    };
+                    return langMap[ext] || "javascript";
+                }
+
+                function renderDiffLine(line, index, filePath, fileComments) {
                     const prefix = line[0];
                     const content = line.slice(1);
                     let lineClass = "context";
@@ -202,13 +404,126 @@
                         lineClass = "deletion";
                     }
 
+                    const lineNumber = index + 1;
+                    const lineComments = (fileComments || []).filter(
+                        (c) => c.line_number === lineNumber,
+                    );
+                    const commentKey = `${filePath}:${lineNumber}`;
+                    const isCommentActive = activeCommentLine === commentKey;
+
+                    // Syntax highlight the content
+                    const language = getLanguageFromPath(filePath);
+                    let highlightedContent = content;
+                    try {
+                        if (window.Prism && window.Prism.languages[language]) {
+                            highlightedContent = Prism.highlight(
+                                content,
+                                Prism.languages[language],
+                                language,
+                            );
+                        }
+                    } catch (e) {
+                        // Fallback to plain text if highlighting fails
+                        highlightedContent = content;
+                    }
+
                     return (
-                        <div key={index} className={`diff-line ${lineClass}`}>
-                            <span className="diff-line-number">
-                                {index + 1}
-                            </span>
-                            <span className="diff-line-content">{content}</span>
-                        </div>
+                        <React.Fragment key={index}>
+                            <div className="diff-line-wrapper">
+                                <button
+                                    className="add-comment-btn"
+                                    onClick={() =>
+                                        setActiveCommentLine(
+                                            isCommentActive ? null : commentKey,
+                                        )
+                                    }
+                                    title="Add a comment to this line"
+                                >
+                                    +
+                                </button>
+                                <div className={`diff-line ${lineClass}`}>
+                                    <span className="diff-line-number">
+                                        {lineNumber}
+                                    </span>
+                                    <span
+                                        className="diff-line-content"
+                                        dangerouslySetInnerHTML={{
+                                            __html: highlightedContent,
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                            {lineComments
+                                .filter((c) => !c.resolved)
+                                .map((comment) => (
+                                    <div
+                                        key={comment.id}
+                                        className="comment-display"
+                                    >
+                                        <div className="d-flex flex-justify-between flex-items-center mb-1">
+                                            <div className="text-small color-fg-muted">
+                                                {new Date(
+                                                    comment.timestamp * 1000,
+                                                ).toLocaleString()}
+                                            </div>
+                                            <button
+                                                className="btn btn-sm"
+                                                onClick={() =>
+                                                    resolveComment(comment.id)
+                                                }
+                                            >
+                                                Resolve
+                                            </button>
+                                        </div>
+                                        <div>{comment.text}</div>
+                                    </div>
+                                ))}
+                            {isCommentActive && (
+                                <div className="comment-form">
+                                    <div className="text-bold mb-2">
+                                        Add a comment on line {lineNumber}
+                                    </div>
+                                    <textarea
+                                        className="form-control mb-2"
+                                        style={{ width: "100%" }}
+                                        placeholder="Leave a comment"
+                                        rows="3"
+                                        value={commentText[commentKey] || ""}
+                                        onChange={(e) =>
+                                            setCommentText((prev) => ({
+                                                ...prev,
+                                                [commentKey]: e.target.value,
+                                            }))
+                                        }
+                                        autoFocus
+                                    />
+                                    <div
+                                        className="d-flex"
+                                        style={{ gap: "8px" }}
+                                    >
+                                        <button
+                                            className="btn btn-sm"
+                                            onClick={() =>
+                                                setActiveCommentLine(null)
+                                            }
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            className="btn btn-primary btn-sm"
+                                            onClick={() =>
+                                                addComment(filePath, lineNumber)
+                                            }
+                                            disabled={
+                                                !commentText[commentKey]?.trim()
+                                            }
+                                        >
+                                            Comment
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </React.Fragment>
                     );
                 }
 
@@ -251,9 +566,12 @@
                 const totalCount = diff?.files.length || 0;
 
                 return (
-                    <div className="container-lg p-4">
-                        <div className="Subhead mb-4">
-                            <div className="Subhead-heading">
+                    <div className="container-lg p-2">
+                        <div className="Subhead mb-5">
+                            <div
+                                className="Subhead-heading"
+                                style={{ fontSize: "28px" }}
+                            >
                                 <span className="text-bold">Guck</span>
                                 <span className="text-normal ml-2">
                                     Diff Reviewer
@@ -272,16 +590,35 @@
                         {diff && diff.files.length > 0 ? (
                             <>
                                 <div className="Box mb-3">
-                                    <div className="Box-row d-flex flex-justify-between flex-items-center">
-                                        <div className="d-flex flex-items-center gap-3">
-                                            <strong>{totalCount}</strong> file
-                                            {totalCount !== 1 ? "s" : ""}{" "}
-                                            changed
+                                    <div
+                                        className="Box-row d-flex flex-justify-between flex-items-center"
+                                        style={{ fontSize: "14px" }}
+                                    >
+                                        <div
+                                            style={{
+                                                display: "flex",
+                                                alignItems: "center",
+                                                gap: "8px",
+                                            }}
+                                        >
+                                            <span>
+                                                <strong>{totalCount}</strong>{" "}
+                                                file
+                                                {totalCount !== 1
+                                                    ? "s"
+                                                    : ""}{" "}
+                                                changed
+                                            </span>
                                             <span className="counter-label">
                                                 <span className="Counter Counter--success">
                                                     {viewedCount}
                                                 </span>
-                                                <span className="text-small color-fg-muted">
+                                                <span
+                                                    className="color-fg-muted"
+                                                    style={{
+                                                        marginLeft: "4px",
+                                                    }}
+                                                >
                                                     reviewed
                                                 </span>
                                             </span>
@@ -309,7 +646,12 @@
                                                         toggleFile(file.path)
                                                     }
                                                 >
-                                                    <div className="d-flex flex-justify-between flex-items-center">
+                                                    <div
+                                                        className="d-flex flex-justify-between flex-items-center"
+                                                        style={{
+                                                            fontSize: "14px",
+                                                        }}
+                                                    >
                                                         <div className="d-flex flex-items-center">
                                                             <span className="text-mono text-bold mr-2">
                                                                 {file.path}
@@ -321,11 +663,11 @@
                                                                     statusInfo.label
                                                                 }
                                                             </span>
-                                                            <span className="text-small color-fg-success mr-2">
+                                                            <span className="color-fg-success mr-2">
                                                                 +
                                                                 {file.additions}
                                                             </span>
-                                                            <span className="text-small color-fg-danger">
+                                                            <span className="color-fg-danger">
                                                                 -
                                                                 {file.deletions}
                                                             </span>
@@ -341,41 +683,45 @@
                                                                     e,
                                                                 ) => {
                                                                     e.stopPropagation();
-                                                                    if (
-                                                                        !file.viewed
-                                                                    ) {
-                                                                        markAsViewed(
-                                                                            file.path,
-                                                                        );
-                                                                    }
+                                                                    toggleViewed(
+                                                                        file.path,
+                                                                        file.viewed,
+                                                                    );
                                                                 }}
                                                                 onClick={(e) =>
                                                                     e.stopPropagation()
                                                                 }
                                                             />
-                                                            <span className="text-small color-fg-muted">
+                                                            <span className="color-fg-muted">
                                                                 Viewed
                                                             </span>
                                                         </div>
                                                     </div>
                                                 </div>
                                                 {isExpanded && (
-                                                    <div className="Box-body p-0">
-                                                        <div className="file-diff-content">
-                                                            {file.patch
-                                                                .split("\n")
-                                                                .map(
-                                                                    (
-                                                                        line,
-                                                                        index,
-                                                                    ) =>
-                                                                        renderDiffLine(
+                                                    <>
+                                                        <div className="Box-body p-0">
+                                                            <div className="file-diff-content">
+                                                                {file.patch
+                                                                    .split("\n")
+                                                                    .map(
+                                                                        (
                                                                             line,
                                                                             index,
-                                                                        ),
-                                                                )}
+                                                                        ) =>
+                                                                            renderDiffLine(
+                                                                                line,
+                                                                                index,
+                                                                                file.path,
+                                                                                comments[
+                                                                                    file
+                                                                                        .path
+                                                                                ],
+                                                                            ),
+                                                                    )}
+                                                            </div>
                                                         </div>
-                                                    </div>
+                                                    </>
                                                 )}
                                             </div>
                                         );
