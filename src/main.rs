@@ -17,6 +17,17 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Start the server (run in foreground or use & to background)
+    Start {
+        /// Port to run the server on (defaults to random available port)
+        #[arg(short, long)]
+        port: Option<u16>,
+
+        /// Base branch to compare against
+        #[arg(short, long)]
+        base: Option<String>,
+    },
+
     /// Initialize shell integration (outputs shell script to eval)
     Init,
 
@@ -88,6 +99,9 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
+        Some(Commands::Start { port, base }) => {
+            start_server_foreground(port, base).await?;
+        }
         Some(Commands::Init) => {
             print_shell_integration();
         }
@@ -102,6 +116,50 @@ async fn main() -> Result<()> {
             open_browser().await?;
         }
     }
+
+    Ok(())
+}
+
+async fn start_server_foreground(
+    port_override: Option<u16>,
+    base_branch_override: Option<String>,
+) -> Result<()> {
+    use std::process;
+
+    let git_repo = git::GitRepo::open(".")?;
+    let repo_path = git_repo.repo_path()?;
+    let daemon_manager = daemon::DaemonManager::new()?;
+
+    // Get config
+    let config = config::Config::load()?;
+    let base_branch = base_branch_override
+        .as_ref()
+        .map(|s| s.clone())
+        .unwrap_or(config.base_branch);
+
+    // Find or use specified port
+    let port = if let Some(p) = port_override {
+        p
+    } else {
+        daemon_manager.find_available_port()?
+    };
+
+    // Register this as a daemon
+    let daemon_info = daemon::DaemonInfo {
+        pid: process::id(),
+        port,
+        repo_path: repo_path.clone(),
+        base_branch: base_branch.clone(),
+    };
+
+    daemon_manager.register_daemon(daemon_info)?;
+
+    println!("Starting guck server for {}", repo_path);
+    println!("Server running on http://localhost:{}", port);
+    println!("Press Ctrl+C to stop");
+
+    // Start server (this blocks)
+    server::start(port, base_branch).await?;
 
     Ok(())
 }
