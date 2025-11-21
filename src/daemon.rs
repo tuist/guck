@@ -57,17 +57,30 @@ impl DaemonManager {
     }
 
     pub fn find_available_port(&self) -> Result<u16> {
+        use rand::Rng;
+
         let registry = self.load_registry()?;
         let used_ports: Vec<u16> = registry.daemons.values().map(|d| d.port).collect();
 
-        // Start from 3000 and find the first available port
-        for port in 3000..4000 {
+        let mut rng = rand::thread_rng();
+        let mut attempts = 0;
+        const MAX_ATTEMPTS: u32 = 100;
+
+        // Try random ports in the range 3000-9000
+        while attempts < MAX_ATTEMPTS {
+            let port = rng.gen_range(3000..9000);
+
             if !used_ports.contains(&port) && Self::is_port_available(port) {
                 return Ok(port);
             }
+
+            attempts += 1;
         }
 
-        anyhow::bail!("No available ports in range 3000-4000")
+        anyhow::bail!(
+            "Could not find an available port after {} attempts",
+            MAX_ATTEMPTS
+        )
     }
 
     fn is_port_available(port: u16) -> bool {
