@@ -96,6 +96,14 @@ func ListTools() map[string]interface{} {
 }
 
 func ListComments(paramsRaw json.RawMessage, workingDir string) (interface{}, error) {
+	stateMgr, err := state.NewManager()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load state: %w", err)
+	}
+	return ListCommentsWithManager(paramsRaw, workingDir, stateMgr)
+}
+
+func ListCommentsWithManager(paramsRaw json.RawMessage, workingDir string, stateMgr *state.Manager) (interface{}, error) {
 	var params ListCommentsParams
 	if err := json.Unmarshal(paramsRaw, &params); err != nil {
 		return nil, fmt.Errorf("invalid params: %w", err)
@@ -111,11 +119,6 @@ func ListComments(paramsRaw json.RawMessage, workingDir string) (interface{}, er
 	absPath, err := filepath.Abs(repoPath)
 	if err != nil {
 		return nil, fmt.Errorf("invalid repo_path: %w", err)
-	}
-
-	stateMgr, err := state.NewManager()
-	if err != nil {
-		return nil, fmt.Errorf("failed to load state: %w", err)
 	}
 
 	var comments []*state.Comment
@@ -168,13 +171,21 @@ func ListComments(paramsRaw json.RawMessage, workingDir string) (interface{}, er
 	}
 
 	return map[string]interface{}{
-		"comments": results,
-		"count":    len(results),
+		"comments":  results,
+		"count":     len(results),
 		"repo_path": absPath,
 	}, nil
 }
 
 func ResolveComment(paramsRaw json.RawMessage, workingDir string) (interface{}, error) {
+	stateMgr, err := state.NewManager()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load state: %w", err)
+	}
+	return ResolveCommentWithManager(paramsRaw, workingDir, stateMgr)
+}
+
+func ResolveCommentWithManager(paramsRaw json.RawMessage, workingDir string, stateMgr *state.Manager) (interface{}, error) {
 	var params ResolveCommentParams
 	if err := json.Unmarshal(paramsRaw, &params); err != nil {
 		return nil, fmt.Errorf("invalid params: %w", err)
@@ -198,11 +209,6 @@ func ResolveComment(paramsRaw json.RawMessage, workingDir string) (interface{}, 
 	absPath, err := filepath.Abs(repoPath)
 	if err != nil {
 		return nil, fmt.Errorf("invalid repo_path: %w", err)
-	}
-
-	stateMgr, err := state.NewManager()
-	if err != nil {
-		return nil, fmt.Errorf("failed to load state: %w", err)
 	}
 
 	// Get all comments to find the one to resolve

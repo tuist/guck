@@ -9,16 +9,16 @@ import (
 )
 
 type Comment struct {
-	ID            string `json:"id"`
-	FilePath      string `json:"file_path"`
-	LineNumber    *int   `json:"line_number,omitempty"`
-	Text          string `json:"text"`
-	Timestamp     int64  `json:"timestamp"`
-	Branch        string `json:"branch"`
-	Commit        string `json:"commit"`
-	Resolved      bool   `json:"resolved"`
-	ResolvedBy    string `json:"resolved_by,omitempty"`
-	ResolvedAt    int64  `json:"resolved_at,omitempty"`
+	ID         string `json:"id"`
+	FilePath   string `json:"file_path"`
+	LineNumber *int   `json:"line_number,omitempty"`
+	Text       string `json:"text"`
+	Timestamp  int64  `json:"timestamp"`
+	Branch     string `json:"branch"`
+	Commit     string `json:"commit"`
+	Resolved   bool   `json:"resolved"`
+	ResolvedBy string `json:"resolved_by,omitempty"`
+	ResolvedAt int64  `json:"resolved_at,omitempty"`
 }
 
 type RepoState struct {
