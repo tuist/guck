@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.0] - 2025-11-22
+
+### 🚀 Features
+
+- Add colorful CLI output ([8a06b2a](8a06b2a7fbe5125509997d0d4500c30315277118))
+
 ## [0.1.2] - 2025-11-22
 
 ### 🐛 Bug Fixes
