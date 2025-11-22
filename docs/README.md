@@ -130,6 +130,25 @@ To integrate Guck with Claude Code (or Claude Desktop), add the following to you
 
 **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 
+#### Using mise (recommended)
+
+If you have [mise](https://mise.jdx.dev/) installed:
+
+```json
+{
+  "mcpServers": {
+    "guck": {
+      "command": "mise",
+      "args": ["x", "ubi:tuist/guck@latest", "--", "guck", "mcp", "stdio"]
+    }
+  }
+}
+```
+
+This ensures you always use the latest version of Guck without needing to specify a full path.
+
+#### Using a direct path
+
 ```json
 {
   "mcpServers": {
