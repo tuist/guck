@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0] - 2025-11-22
+
+### 🚀 Features
+
+- Add MCP server support with comprehensive tests and improved CI ([a31bc59](a31bc59f3427c5424ac9d121826aacb8582c8fe6))
+
 ## [0.2.0] - 2025-11-22
 
 ### 🚀 Features
