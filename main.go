@@ -5,11 +5,20 @@ import (
 	"os"
 	"os/exec"
 
+	"github.com/fatih/color"
 	"github.com/tuist/guck/internal/config"
 	"github.com/tuist/guck/internal/daemon"
 	"github.com/tuist/guck/internal/git"
 	"github.com/tuist/guck/internal/server"
 	"github.com/urfave/cli/v2"
+)
+
+var (
+	successColor = color.New(color.FgGreen, color.Bold)
+	infoColor    = color.New(color.FgCyan)
+	errorColor   = color.New(color.FgRed, color.Bold)
+	warningColor = color.New(color.FgYellow)
+	urlColor     = color.New(color.FgBlue, color.Underline)
 )
 
 func main() {
@@ -105,7 +114,7 @@ func main() {
 	}
 
 	if err := app.Run(os.Args); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		errorColor.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
 }
@@ -155,9 +164,10 @@ func startServerForeground(c *cli.Context) error {
 		return err
 	}
 
-	fmt.Printf("Starting guck server for %s\n", repoPath)
-	fmt.Printf("Server running on http://localhost:%d\n", port)
-	fmt.Println("Press Ctrl+C to stop")
+	successColor.Printf("✓ Starting guck server for %s\n", repoPath)
+	infoColor.Print("Server running on ")
+	urlColor.Printf("http://localhost:%d\n", port)
+	infoColor.Println("Press Ctrl+C to stop")
 
 	return server.Start(port, baseBranch)
 }
@@ -275,7 +285,8 @@ func startDaemon(c *cli.Context) error {
 		return err
 	}
 
-	fmt.Printf("Started daemon for %s on port %d (PID: %d)\n", repoPath, port, cmd.Process.Pid)
+	successColor.Printf("✓ Started daemon for %s\n", repoPath)
+	infoColor.Printf("  Port: %d | PID: %d\n", port, cmd.Process.Pid)
 	return nil
 }
 
@@ -297,7 +308,7 @@ func stopDaemon(c *cli.Context) error {
 
 	info, err := daemonMgr.GetDaemonForRepo(repoPath)
 	if err != nil || info == nil {
-		fmt.Println("No daemon running for this repository")
+		warningColor.Println("⚠ No daemon running for this repository")
 		return nil
 	}
 
@@ -309,7 +320,7 @@ func stopDaemon(c *cli.Context) error {
 		return err
 	}
 
-	fmt.Printf("Stopped daemon for %s\n", repoPath)
+	successColor.Printf("✓ Stopped daemon for %s\n", repoPath)
 	return nil
 }
 
@@ -328,7 +339,7 @@ func stopAllDaemons(c *cli.Context) error {
 		if daemonMgr.IsDaemonRunning(info.PID) {
 			daemonMgr.StopDaemon(info.PID)
 			daemonMgr.UnregisterDaemon(info.RepoPath)
-			fmt.Printf("Stopped daemon for %s\n", info.RepoPath)
+			successColor.Printf("✓ Stopped daemon for %s\n", info.RepoPath)
 		}
 	}
 
@@ -351,13 +362,15 @@ func listDaemons(c *cli.Context) error {
 	}
 
 	if len(daemons) == 0 {
-		fmt.Println("No running daemons")
+		warningColor.Println("⚠ No running daemons")
 		return nil
 	}
 
-	fmt.Println("Running daemons:")
+	infoColor.Println("Running daemons:")
 	for _, info := range daemons {
-		fmt.Printf("  %s - http://localhost:%d (PID: %d)\n", info.RepoPath, info.Port, info.PID)
+		fmt.Printf("  %s - ", info.RepoPath)
+		urlColor.Printf("http://localhost:%d", info.Port)
+		fmt.Printf(" (PID: %d)\n", info.PID)
 	}
 
 	return nil
@@ -373,7 +386,7 @@ func cleanupDaemons(c *cli.Context) error {
 		return err
 	}
 
-	fmt.Println("Cleaned up stale daemon entries")
+	successColor.Println("✓ Cleaned up stale daemon entries")
 	return nil
 }
 
@@ -408,7 +421,9 @@ func openBrowser(c *cli.Context) error {
 	}
 
 	url := fmt.Sprintf("http://localhost:%d", info.Port)
-	fmt.Printf("Opening %s in your browser...\n", url)
+	infoColor.Print("Opening ")
+	urlColor.Print(url)
+	infoColor.Println(" in your browser...")
 
 	var cmd *exec.Cmd
 	switch {
@@ -442,7 +457,9 @@ func setConfig(c *cli.Context) error {
 		if err := cfg.Save(); err != nil {
 			return err
 		}
-		fmt.Printf("Set base-branch to '%s'\n", value)
+		successColor.Print("✓ Set ")
+		infoColor.Print("base-branch")
+		successColor.Printf(" to '%s'\n", value)
 	default:
 		return fmt.Errorf("unknown configuration key: %s", key)
 	}
@@ -478,6 +495,7 @@ func showConfig(c *cli.Context) error {
 		return err
 	}
 
-	fmt.Printf("base-branch = %s\n", cfg.BaseBranch)
+	infoColor.Print("base-branch = ")
+	successColor.Println(cfg.BaseBranch)
 	return nil
 }
