@@ -103,7 +103,7 @@ func Start(port int, baseBranch string) error {
 
 func (s *AppState) indexHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
-	w.Write([]byte(indexHTML))
+	_, _ = w.Write([]byte(indexHTML)) // Ignore write error for HTTP response
 }
 
 func (s *AppState) diffHandler(w http.ResponseWriter, r *http.Request) {
@@ -156,7 +156,7 @@ func (s *AppState) diffHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response) // Ignore encode error for HTTP response
 }
 
 func (s *AppState) markViewedHandler(w http.ResponseWriter, r *http.Request) {
@@ -257,7 +257,7 @@ func (s *AppState) statusHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response) // Ignore encode error for HTTP response
 }
 
 func (s *AppState) getCommentsHandler(w http.ResponseWriter, r *http.Request) {
@@ -291,7 +291,7 @@ func (s *AppState) getCommentsHandler(w http.ResponseWriter, r *http.Request) {
 	comments := s.StateManager.GetComments(s.RepoPath, currentBranch, currentCommit, filePathPtr)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(comments)
+	_ = json.NewEncoder(w).Encode(comments) // Ignore encode error for HTTP response
 }
 
 func (s *AppState) addCommentHandler(w http.ResponseWriter, r *http.Request) {
@@ -329,7 +329,7 @@ func (s *AppState) addCommentHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(comment)
+	_ = json.NewEncoder(w).Encode(comment) // Ignore encode error for HTTP response
 }
 
 func (s *AppState) resolveCommentHandler(w http.ResponseWriter, r *http.Request) {
@@ -360,7 +360,7 @@ func (s *AppState) resolveCommentHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := s.StateManager.ResolveComment(s.RepoPath, currentBranch, currentCommit, payload.CommentID); err != nil {
+	if err := s.StateManager.ResolveComment(s.RepoPath, currentBranch, currentCommit, payload.CommentID, "web-ui"); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

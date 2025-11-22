@@ -17,6 +17,8 @@ type Comment struct {
 	Branch     string `json:"branch"`
 	Commit     string `json:"commit"`
 	Resolved   bool   `json:"resolved"`
+	ResolvedBy string `json:"resolved_by,omitempty"`
+	ResolvedAt int64  `json:"resolved_at,omitempty"`
 }
 
 type RepoState struct {
@@ -192,13 +194,15 @@ func (m *Manager) GetComments(repoPath, branch, commit string, filePath *string)
 	return []*Comment{}
 }
 
-func (m *Manager) ResolveComment(repoPath, branch, commit, commentID string) error {
+func (m *Manager) ResolveComment(repoPath, branch, commit, commentID, resolvedBy string) error {
 	if branches, ok := m.state.Repos[repoPath]; ok {
 		if commits, ok := branches[branch]; ok {
 			if repoState, ok := commits[commit]; ok {
 				for _, comment := range repoState.Comments {
 					if comment.ID == commentID {
 						comment.Resolved = true
+						comment.ResolvedBy = resolvedBy
+						comment.ResolvedAt = time.Now().Unix()
 						return m.save()
 					}
 				}
@@ -207,6 +211,20 @@ func (m *Manager) ResolveComment(repoPath, branch, commit, commentID string) err
 	}
 
 	return fmt.Errorf("comment not found")
+}
+
+func (m *Manager) GetAllComments(repoPath string) []*Comment {
+	var allComments []*Comment
+
+	if branches, ok := m.state.Repos[repoPath]; ok {
+		for _, commits := range branches {
+			for _, repoState := range commits {
+				allComments = append(allComments, repoState.Comments...)
+			}
+		}
+	}
+
+	return allComments
 }
 
 func (m *Manager) save() error {

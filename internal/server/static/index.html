@@ -1,5 +1,10 @@
 <!doctype html>
-<html lang="en" data-color-mode="dark" data-dark-theme="dark">
+<html
+    lang="en"
+    data-color-mode="auto"
+    data-light-theme="light"
+    data-dark-theme="dark"
+>
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -19,22 +24,33 @@
         <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
         <link
             rel="stylesheet"
-            href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css"
+            href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css"
+            id="hljs-light"
         />
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-jsx.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-tsx.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-rust.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-yaml.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markdown.min.js"></script>
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"
+            id="hljs-dark"
+        />
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
         <style>
             body {
-                background-color: #0d1117;
                 min-height: 100vh;
+            }
+
+            /* Hide/show highlight.js themes based on color mode */
+            /* Default to light theme, hide dark */
+            #hljs-dark {
+                display: none !important;
+            }
+
+            /* When in dark mode, show dark and hide light */
+            [data-color-mode="dark"] #hljs-light {
+                display: none !important;
+            }
+
+            [data-color-mode="dark"] #hljs-dark {
+                display: block !important;
             }
 
             .file-diff-content {
@@ -44,13 +60,10 @@
                 font-size: 12px;
                 line-height: 20px;
                 overflow-x: auto;
-                padding-left: 32px;
-                margin-left: -32px;
             }
 
             .diff-line {
                 display: flex;
-                width: 100%;
                 min-width: max-content;
             }
 
@@ -59,7 +72,7 @@
                 padding: 0 10px;
                 text-align: right;
                 user-select: none;
-                color: #8b949e;
+                color: var(--fgColor-muted);
                 flex-shrink: 0;
             }
 
@@ -67,31 +80,22 @@
                 flex: 1;
                 padding: 0 10px;
                 white-space: pre;
-                overflow-x: auto;
             }
 
             .diff-line.addition {
-                background-color: rgba(46, 160, 67, 0.15);
+                background-color: var(--bgColor-success-muted);
             }
 
             .diff-line.addition .diff-line-number {
-                background-color: rgba(46, 160, 67, 0.15);
-            }
-
-            .diff-line.addition .diff-line-content {
-                color: #c9d1d9;
+                background-color: var(--bgColor-success-muted);
             }
 
             .diff-line.deletion {
-                background-color: rgba(248, 81, 73, 0.15);
+                background-color: var(--bgColor-danger-muted);
             }
 
             .diff-line.deletion .diff-line-number {
-                background-color: rgba(248, 81, 73, 0.15);
-            }
-
-            .diff-line.deletion .diff-line-content {
-                color: #c9d1d9;
+                background-color: var(--bgColor-danger-muted);
             }
 
             .diff-line.context {
@@ -104,7 +108,7 @@
             }
 
             .file-header-container:hover {
-                background-color: #161b22;
+                background-color: var(--bgColor-muted);
             }
 
             .counter-label {
@@ -129,7 +133,8 @@
 
             .diff-line-wrapper {
                 position: relative;
-                padding-left: 32px;
+                display: flex;
+                min-width: max-content;
             }
 
             .diff-line-wrapper:hover .add-comment-btn {
@@ -137,10 +142,7 @@
             }
 
             .add-comment-btn {
-                position: absolute;
-                left: -32px;
-                top: 50%;
-                transform: translateY(-50%);
+                position: relative;
                 opacity: 0;
                 transition: opacity 0.1s;
                 width: 22px;
@@ -148,6 +150,8 @@
                 border-radius: 50%;
                 background-color: #0969da;
                 color: white;
+                flex-shrink: 0;
+                margin-right: 10px;
                 border: none;
                 cursor: pointer;
                 font-size: 16px;
@@ -182,6 +186,27 @@
                 width: 100% !important;
                 box-sizing: border-box;
             }
+
+            /* File box styling improvements */
+            .Box {
+                border-radius: 12px !important;
+                overflow: hidden;
+                margin-bottom: 16px !important;
+            }
+
+            .Box-header {
+                border-radius: 0 !important;
+            }
+
+            .Box-row:first-child {
+                border-top-left-radius: 12px;
+                border-top-right-radius: 12px;
+            }
+
+            .Box-row:last-child {
+                border-bottom-left-radius: 12px;
+                border-bottom-right-radius: 12px;
+            }
         </style>
     </head>
     <body>
@@ -200,6 +225,41 @@
                 const [commentText, setCommentText] = useState({});
                 const [activeCommentLine, setActiveCommentLine] =
                     useState(null);
+
+                // Theme management
+                const getInitialTheme = () => {
+                    const stored = localStorage.getItem("guck-theme");
+                    if (stored) return stored;
+                    return window.matchMedia("(prefers-color-scheme: dark)")
+                        .matches
+                        ? "dark"
+                        : "light";
+                };
+
+                const [theme, setTheme] = useState(getInitialTheme);
+
+                useEffect(() => {
+                    const html = document.documentElement;
+                    html.setAttribute("data-color-mode", theme);
+                    localStorage.setItem("guck-theme", theme);
+
+                    // Update highlight.js theme
+                    const lightTheme = document.getElementById("hljs-light");
+                    const darkTheme = document.getElementById("hljs-dark");
+                    if (lightTheme && darkTheme) {
+                        if (theme === "dark") {
+                            lightTheme.disabled = true;
+                            darkTheme.disabled = false;
+                        } else {
+                            lightTheme.disabled = false;
+                            darkTheme.disabled = true;
+                        }
+                    }
+                }, [theme]);
+
+                const toggleTheme = () => {
+                    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+                };
 
                 useEffect(() => {
                     loadData();
@@ -378,38 +438,33 @@
                     const ext = filePath.split(".").pop().toLowerCase();
                     const langMap = {
                         js: "javascript",
-                        jsx: "jsx",
+                        jsx: "javascript",
                         ts: "typescript",
-                        tsx: "tsx",
+                        tsx: "typescript",
                         rs: "rust",
                         py: "python",
+                        go: "go",
                         json: "json",
                         yaml: "yaml",
                         yml: "yaml",
                         md: "markdown",
-                        html: "markup",
+                        html: "xml",
                         css: "css",
+                        sh: "bash",
+                        bash: "bash",
+                        rb: "ruby",
+                        java: "java",
+                        c: "c",
+                        cpp: "cpp",
+                        h: "c",
+                        hpp: "cpp",
                     };
-                    return langMap[ext] || "javascript";
+                    return langMap[ext] || "plaintext";
                 }
 
                 function renderDiffLine(line, index, filePath, fileComments) {
                     const prefix = line[0];
                     const content = line.slice(1);
-
-                    // Skip Git diff metadata lines
-                    if (
-                        line.startsWith("diff --git") ||
-                        line.startsWith("index ") ||
-                        line.startsWith("--- ") ||
-                        line.startsWith("+++ ") ||
-                        line.startsWith("new file mode") ||
-                        line.startsWith("old file mode") ||
-                        line.startsWith("deleted file mode") ||
-                        line.startsWith("@@")
-                    ) {
-                        return null;
-                    }
 
                     let lineClass = "context";
 
@@ -426,20 +481,20 @@
                     const commentKey = `${filePath}:${lineNumber}`;
                     const isCommentActive = activeCommentLine === commentKey;
 
-                    // Syntax highlight the content
-                    const language = getLanguageFromPath(filePath);
-                    let highlightedContent = content;
-                    try {
-                        if (window.Prism && window.Prism.languages[language]) {
-                            highlightedContent = Prism.highlight(
-                                content,
-                                Prism.languages[language],
+                    // Only apply syntax highlighting to context lines (not additions/deletions)
+                    let displayContent = content;
+                    if (lineClass === "context" && window.hljs) {
+                        const language = getLanguageFromPath(filePath);
+                        try {
+                            const result = hljs.highlight(content, {
                                 language,
-                            );
+                                ignoreIllegals: true,
+                            });
+                            displayContent = result.value;
+                        } catch (e) {
+                            // Fallback to plain text
+                            displayContent = content;
                         }
-                    } catch (e) {
-                        // Fallback to plain text if highlighting fails
-                        highlightedContent = content;
                     }
 
                     return (
@@ -460,12 +515,18 @@
                                     <span className="diff-line-number">
                                         {lineNumber}
                                     </span>
-                                    <span
-                                        className="diff-line-content"
-                                        dangerouslySetInnerHTML={{
-                                            __html: highlightedContent,
-                                        }}
-                                    />
+                                    {lineClass === "context" ? (
+                                        <span
+                                            className="diff-line-content"
+                                            dangerouslySetInnerHTML={{
+                                                __html: displayContent,
+                                            }}
+                                        />
+                                    ) : (
+                                        <span className="diff-line-content">
+                                            {content}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                             {lineComments
@@ -582,21 +643,85 @@
 
                 return (
                     <div className="container-lg p-2">
-                        <div className="Subhead mb-5">
-                            <div
-                                className="Subhead-heading"
-                                style={{ fontSize: "28px" }}
+                        <div className="Subhead mb-5 d-flex flex-justify-between flex-items-center">
+                            <div>
+                                <div
+                                    className="Subhead-heading d-flex flex-items-center"
+                                    style={{ fontSize: "28px", gap: "12px" }}
+                                >
+                                    <span className="text-bold">Guck</span>
+                                    {diff?.repo_path && (
+                                        <a
+                                            href={`file://${diff.repo_path}`}
+                                            className="Link--muted"
+                                            style={{ fontSize: "14px" }}
+                                            title={diff.repo_path}
+                                        >
+                                            <svg
+                                                className="octicon"
+                                                width="16"
+                                                height="16"
+                                                viewBox="0 0 16 16"
+                                                fill="currentColor"
+                                            >
+                                                <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5Zm10.5-1h-8a1 1 0 0 0-1 1v6.708A2.486 2.486 0 0 1 4.5 9h8ZM5 12.25a.25.25 0 0 1 .25-.25h3.5a.25.25 0 0 1 .25.25v3.25a.25.25 0 0 1-.4.2l-1.45-1.087a.249.249 0 0 0-.3 0L5.4 15.7a.25.25 0 0 1-.4-.2Z"></path>
+                                            </svg>
+                                            <span className="ml-1">
+                                                {diff.repo_path
+                                                    .split("/")
+                                                    .pop()}
+                                            </span>
+                                        </a>
+                                    )}
+                                </div>
+                                <div className="Subhead-description mt-1">
+                                    <span className="Label Label--secondary mr-2">
+                                        Branch: {diff?.branch}
+                                    </span>
+                                    <span className="Label Label--secondary mr-2">
+                                        Commit: {diff?.commit.slice(0, 7)}
+                                    </span>
+                                    <span className="color-fg-muted text-small">
+                                        · A project by{" "}
+                                        <a
+                                            href="https://tuist.io"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="Link--primary"
+                                        >
+                                            Tuist
+                                        </a>
+                                    </span>
+                                </div>
+                            </div>
+                            <button
+                                className="btn btn-sm btn-invisible"
+                                onClick={toggleTheme}
+                                title="Toggle theme"
+                                aria-label="Toggle theme"
                             >
-                                <span className="text-bold">Guck</span>
-                            </div>
-                            <div className="Subhead-description mt-1">
-                                <span className="Label Label--secondary mr-2">
-                                    Branch: {diff?.branch}
-                                </span>
-                                <span className="Label Label--secondary">
-                                    Commit: {diff?.commit.slice(0, 7)}
-                                </span>
-                            </div>
+                                {theme === "dark" ? (
+                                    <svg
+                                        className="octicon"
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 16 16"
+                                        fill="currentColor"
+                                    >
+                                        <path d="M8 12a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm0-1.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Zm5.657-8.157a.75.75 0 0 1 0 1.061l-1.061 1.06a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734l1.06-1.06a.75.75 0 0 1 1.06 0Zm-9.193 9.193a.75.75 0 0 1 0 1.06l-1.06 1.061a.75.75 0 1 1-1.061-1.06l1.06-1.061a.75.75 0 0 1 1.061 0ZM8 0a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0V.75A.75.75 0 0 1 8 0ZM3 8a.75.75 0 0 1-.75.75H.75a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 3 8Zm13 0a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 16 8Zm-8 5a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 8 13Zm3.536-1.464a.75.75 0 0 1 1.06 0l1.061 1.06a.75.75 0 0 1-1.06 1.061l-1.061-1.06a.75.75 0 0 1 0-1.061ZM2.343 2.343a.75.75 0 0 1 1.061 0l1.06 1.061a.751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018l-1.06-1.06a.75.75 0 0 1 0-1.06Z"></path>
+                                    </svg>
+                                ) : (
+                                    <svg
+                                        className="octicon"
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 16 16"
+                                        fill="currentColor"
+                                    >
+                                        <path d="M9.598 1.591a.749.749 0 0 1 .785-.175 7.001 7.001 0 1 1-8.967 8.967.75.75 0 0 1 .961-.96 5.5 5.5 0 0 0 7.046-7.046.75.75 0 0 1 .175-.786Zm1.616 1.945a7 7 0 0 1-7.678 7.678 5.499 5.499 0 1 0 7.678-7.678Z"></path>
+                                    </svg>
+                                )}
+                            </button>
                         </div>
 
                         {diff && diff.files.length > 0 ? (
@@ -638,7 +763,7 @@
                                     </div>
                                 </div>
 
-                                <div className="d-flex flex-column gap-3">
+                                <div className="d-flex flex-column gap-4">
                                     {diff.files.map((file) => {
                                         const statusInfo = getStatusLabel(
                                             file.status,
@@ -716,6 +841,39 @@
                                                             <div className="file-diff-content">
                                                                 {file.patch
                                                                     .split("\n")
+                                                                    .filter(
+                                                                        (
+                                                                            line,
+                                                                        ) => {
+                                                                            // Filter out Git diff metadata lines
+                                                                            return !(
+                                                                                line.startsWith(
+                                                                                    "diff --git",
+                                                                                ) ||
+                                                                                line.startsWith(
+                                                                                    "index ",
+                                                                                ) ||
+                                                                                line.startsWith(
+                                                                                    "--- ",
+                                                                                ) ||
+                                                                                line.startsWith(
+                                                                                    "+++ ",
+                                                                                ) ||
+                                                                                line.startsWith(
+                                                                                    "new file mode",
+                                                                                ) ||
+                                                                                line.startsWith(
+                                                                                    "old file mode",
+                                                                                ) ||
+                                                                                line.startsWith(
+                                                                                    "deleted file mode",
+                                                                                ) ||
+                                                                                line.startsWith(
+                                                                                    "@@",
+                                                                                )
+                                                                            );
+                                                                        },
+                                                                    )
                                                                     .map(
                                                                         (
                                                                             line,
