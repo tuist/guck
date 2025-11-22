@@ -247,7 +247,7 @@ func startDaemon(c *cli.Context) error {
 		if daemonMgr.IsDaemonRunning(info.PID) {
 			return nil
 		}
-		daemonMgr.UnregisterDaemon(repoPath)
+		_ = daemonMgr.UnregisterDaemon(repoPath) // Ignore error, we'll register a new one
 	}
 
 	cfg, err := config.Load()
@@ -361,8 +361,8 @@ func stopAllDaemons(c *cli.Context) error {
 
 	for _, info := range daemons {
 		if daemonMgr.IsDaemonRunning(info.PID) {
-			daemonMgr.StopDaemon(info.PID)
-			daemonMgr.UnregisterDaemon(info.RepoPath)
+			_ = daemonMgr.StopDaemon(info.PID)               // Best effort stop
+			_ = daemonMgr.UnregisterDaemon(info.RepoPath)     // Best effort cleanup
 			successColor.Printf("✓ Stopped daemon for %s\n", info.RepoPath)
 		}
 	}
@@ -440,7 +440,7 @@ func openBrowser(c *cli.Context) error {
 	}
 
 	if !daemonMgr.IsDaemonRunning(info.PID) {
-		daemonMgr.UnregisterDaemon(repoPath)
+		_ = daemonMgr.UnregisterDaemon(repoPath) // Clean up stale registration
 		return fmt.Errorf("daemon is not running. Run 'guck daemon start' first")
 	}
 
