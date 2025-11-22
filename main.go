@@ -116,13 +116,18 @@ func main() {
 				Usage: "MCP (Model Context Protocol) server for LLM integrations",
 				Subcommands: []*cli.Command{
 					{
+						Name:   "stdio",
+						Usage:  "Start MCP server with stdio transport (for integration with Claude Code, etc.)",
+						Action: mcpStdio,
+					},
+					{
 						Name:   "list-tools",
-						Usage:  "List available MCP tools",
+						Usage:  "List available MCP tools (legacy)",
 						Action: mcpListTools,
 					},
 					{
 						Name:      "call-tool",
-						Usage:     "Call an MCP tool",
+						Usage:     "Call an MCP tool (legacy)",
 						ArgsUsage: "<tool-name>",
 						Action:    mcpCallTool,
 					},
@@ -519,6 +524,17 @@ func showConfig(c *cli.Context) error {
 	return nil
 }
 
+func mcpStdio(c *cli.Context) error {
+	// Get current working directory
+	workingDir, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get working directory: %w", err)
+	}
+
+	// Start MCP server with stdio transport
+	return mcp.StartStdioServer(workingDir)
+}
+
 func mcpListTools(c *cli.Context) error {
 	tools := mcp.ListTools()
 	data, err := json.MarshalIndent(tools, "", "  ")
@@ -535,7 +551,7 @@ func mcpCallTool(c *cli.Context) error {
 	}
 
 	toolName := c.Args().Get(0)
-	
+
 	// Get current working directory
 	workingDir, err := os.Getwd()
 	if err != nil {
