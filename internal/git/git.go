@@ -130,22 +130,20 @@ func (r *Repo) GetDiffFiles(baseBranch string) ([]FileInfo, error) {
 			status = "renamed"
 		}
 
-		// Count additions and deletions
+		// Count additions and deletions from the patch string
 		additions := 0
 		deletions := 0
 		patchStr := patch.String()
 
-		for _, filePatch := range patch.FilePatches() {
-			for _, chunk := range filePatch.Chunks() {
-				content := chunk.Content()
-				lines := strings.Split(content, "\n")
-				for _, line := range lines {
-					if strings.HasPrefix(line, "+") && !strings.HasPrefix(line, "+++") {
-						additions++
-					} else if strings.HasPrefix(line, "-") && !strings.HasPrefix(line, "---") {
-						deletions++
-					}
-				}
+		lines := strings.Split(patchStr, "\n")
+		for _, line := range lines {
+			if len(line) == 0 {
+				continue
+			}
+			if strings.HasPrefix(line, "+") && !strings.HasPrefix(line, "+++") {
+				additions++
+			} else if strings.HasPrefix(line, "-") && !strings.HasPrefix(line, "---") {
+				deletions++
 			}
 		}
 
