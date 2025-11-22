@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.2] - 2025-11-22
+
+### 🐛 Bug Fixes
+
+- Hide Git diff metadata lines from UI ([b8d9ab6](b8d9ab6946925116dc325c3e093c8c975a508e8b))
+
 ## [0.1.1] - 2025-11-21
 
 ### 📚 Documentation
