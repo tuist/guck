@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"runtime"
 
 	"github.com/fatih/color"
 	"github.com/tuist/guck/internal/config"
