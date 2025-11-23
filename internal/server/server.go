@@ -23,10 +23,11 @@ type AppState struct {
 }
 
 type DiffResponse struct {
-	Files    []FileDiff `json:"files"`
-	Branch   string     `json:"branch"`
-	Commit   string     `json:"commit"`
-	RepoPath string     `json:"repo_path"`
+	Files     []FileDiff `json:"files"`
+	Branch    string     `json:"branch"`
+	Commit    string     `json:"commit"`
+	RepoPath  string     `json:"repo_path"`
+	RemoteURL string     `json:"remote_url,omitempty"`
 }
 
 type FileDiff struct {
@@ -128,6 +129,8 @@ func (s *AppState) diffHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	remoteURL, _ := gitRepo.GetRemoteURL() // Ignore error, remote is optional
+
 	files, err := gitRepo.GetDiffFiles(s.BaseBranch)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -149,10 +152,11 @@ func (s *AppState) diffHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := DiffResponse{
-		Files:    fileDiffs,
-		Branch:   currentBranch,
-		Commit:   currentCommit,
-		RepoPath: s.RepoPath,
+		Files:     fileDiffs,
+		Branch:    currentBranch,
+		Commit:    currentCommit,
+		RepoPath:  s.RepoPath,
+		RemoteURL: remoteURL,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
