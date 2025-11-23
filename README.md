@@ -56,7 +56,7 @@ Add to your Claude Desktop configuration:
   "mcpServers": {
     "guck": {
       "command": "/path/to/guck",
-      "args": ["mcp", "stdio"]
+      "args": ["mcp"]
     }
   }
 }

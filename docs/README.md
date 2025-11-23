@@ -139,7 +139,7 @@ If you have [mise](https://mise.jdx.dev/) installed:
   "mcpServers": {
     "guck": {
       "command": "mise",
-      "args": ["x", "ubi:tuist/guck@latest", "--", "guck", "mcp", "stdio"]
+      "args": ["x", "ubi:tuist/guck@latest", "--", "guck", "mcp"]
     }
   }
 }
@@ -154,7 +154,7 @@ This ensures you always use the latest version of Guck without needing to specif
   "mcpServers": {
     "guck": {
       "command": "/path/to/guck",
-      "args": ["mcp", "stdio"]
+      "args": ["mcp"]
     }
   }
 }
@@ -173,7 +173,7 @@ After adding this configuration, restart Claude Code/Desktop. Guck will be avail
 Lists code review comments with optional filtering.
 
 **Parameters:**
-- `repo_path` (optional): Path to the repository (defaults to current working directory)
+- `repo_path` (required): Absolute path to the git repository
 - `branch` (optional): Filter by branch name
 - `commit` (optional): Filter by commit hash
 - `file_path` (optional): Filter by file path
@@ -184,6 +184,7 @@ Lists code review comments with optional filtering.
 {
   "name": "list_comments",
   "arguments": {
+    "repo_path": "/Users/username/projects/my-repo",
     "file_path": "main.go",
     "resolved": false
   }
@@ -215,15 +216,16 @@ Lists code review comments with optional filtering.
 Marks a comment as resolved and tracks who resolved it.
 
 **Parameters:**
+- `repo_path` (required): Absolute path to the git repository
 - `comment_id` (required): The ID of the comment to resolve
 - `resolved_by` (required): Identifier of who/what is resolving the comment (e.g., "claude", "copilot", "user-name")
-- `repo_path` (optional): Path to the repository (defaults to current working directory)
 
 **Example Request:**
 ```json
 {
   "name": "resolve_comment",
   "arguments": {
+    "repo_path": "/Users/username/projects/my-repo",
     "comment_id": "1234567890-0",
     "resolved_by": "claude"
   }
@@ -251,26 +253,7 @@ Once configured, you can ask Claude to interact with your code reviews:
 - "Resolve the comment with ID 1234567890-0"
 - "What comments were added on the feature/auth branch?"
 
-#### Legacy Command-line Usage
 
-For testing or scripting, you can also use the legacy command-line interface:
-
-```bash
-# List available tools
-guck mcp list-tools
-
-# List all comments (JSON via stdin)
-echo '{}' | guck mcp call-tool list_comments
-
-# Filter by file
-echo '{"file_path": "main.go"}' | guck mcp call-tool list_comments
-
-# Filter unresolved comments
-echo '{"resolved": false}' | guck mcp call-tool list_comments
-
-# Resolve a comment
-echo '{"comment_id": "1234567890-0", "resolved_by": "me"}' | guck mcp call-tool resolve_comment
-```
 
 ## Development
 

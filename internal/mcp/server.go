@@ -42,7 +42,10 @@ type ServerInfo struct {
 }
 
 type Capabilities struct {
-	Tools map[string]interface{} `json:"tools"`
+	Tools *ToolsCapability `json:"tools,omitempty"`
+}
+
+type ToolsCapability struct {
 }
 
 type ListToolsResult struct {
@@ -66,7 +69,7 @@ type ToolContent struct {
 }
 
 // StartStdioServer starts the MCP server using stdio transport
-func StartStdioServer(workingDir string) error {
+func StartStdioServer() error {
 	// Configure logging to stderr (stdout is reserved for JSON-RPC)
 	log.SetOutput(os.Stderr)
 	log.SetPrefix("[guck-mcp] ")
@@ -103,7 +106,7 @@ func StartStdioServer(workingDir string) error {
 			response = handleToolsList(request)
 
 		case "tools/call":
-			response = handleToolsCall(request, workingDir)
+			response = handleToolsCall(request)
 
 		default:
 			response = &JSONRPCResponse{
@@ -132,10 +135,10 @@ func handleInitialize(request JSONRPCRequest) *JSONRPCResponse {
 			ProtocolVersion: "2024-11-05",
 			ServerInfo: ServerInfo{
 				Name:    "guck",
-				Version: "0.1.0",
+				Version: "0.5.0",
 			},
 			Capabilities: Capabilities{
-				Tools: map[string]interface{}{},
+				Tools: &ToolsCapability{},
 			},
 		},
 	}
@@ -205,7 +208,7 @@ func handleToolsList(request JSONRPCRequest) *JSONRPCResponse {
 	}
 }
 
-func handleToolsCall(request JSONRPCRequest, workingDir string) *JSONRPCResponse {
+func handleToolsCall(request JSONRPCRequest) *JSONRPCResponse {
 	params, ok := request.Params.(map[string]interface{})
 	if !ok {
 		return &JSONRPCResponse{
@@ -253,10 +256,10 @@ func handleToolsCall(request JSONRPCRequest, workingDir string) *JSONRPCResponse
 
 	switch toolName {
 	case "list_comments":
-		result, toolErr = ListComments(json.RawMessage(argsJSON), workingDir)
+		result, toolErr = ListComments(json.RawMessage(argsJSON))
 
 	case "resolve_comment":
-		result, toolErr = ResolveComment(json.RawMessage(argsJSON), workingDir)
+		result, toolErr = ResolveComment(json.RawMessage(argsJSON))
 
 	default:
 		return &JSONRPCResponse{

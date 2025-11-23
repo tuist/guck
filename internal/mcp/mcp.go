@@ -9,7 +9,7 @@ import (
 )
 
 type ListCommentsParams struct {
-	RepoPath string  `json:"repo_path,omitempty"`
+	RepoPath string  `json:"repo_path"`
 	Branch   *string `json:"branch,omitempty"`
 	Commit   *string `json:"commit,omitempty"`
 	FilePath *string `json:"file_path,omitempty"`
@@ -17,7 +17,7 @@ type ListCommentsParams struct {
 }
 
 type ResolveCommentParams struct {
-	RepoPath   string `json:"repo_path,omitempty"`
+	RepoPath   string `json:"repo_path"`
 	CommentID  string `json:"comment_id"`
 	ResolvedBy string `json:"resolved_by"`
 }
@@ -39,13 +39,13 @@ func ListTools() map[string]interface{} {
 	tools := []map[string]interface{}{
 		{
 			"name":        "list_comments",
-			"description": "List all code review comments for a repository. Can filter by branch, commit, file, and resolution status. If repo_path is not provided, uses the current working directory.",
+			"description": "List all code review comments for a repository. Can filter by branch, commit, file, and resolution status.",
 			"inputSchema": map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
 					"repo_path": map[string]interface{}{
 						"type":        "string",
-						"description": "Absolute path to the git repository (defaults to current working directory)",
+						"description": "Absolute path to the git repository",
 					},
 					"branch": map[string]interface{}{
 						"type":        "string",
@@ -64,17 +64,18 @@ func ListTools() map[string]interface{} {
 						"description": "Optional: Filter by resolution status (true=resolved, false=unresolved)",
 					},
 				},
+				"required": []string{"repo_path"},
 			},
 		},
 		{
 			"name":        "resolve_comment",
-			"description": "Mark a code review comment as resolved, tracking who resolved it and when. If repo_path is not provided, uses the current working directory.",
+			"description": "Mark a code review comment as resolved, tracking who resolved it and when.",
 			"inputSchema": map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
 					"repo_path": map[string]interface{}{
 						"type":        "string",
-						"description": "Absolute path to the git repository (defaults to current working directory)",
+						"description": "Absolute path to the git repository",
 					},
 					"comment_id": map[string]interface{}{
 						"type":        "string",
@@ -85,7 +86,7 @@ func ListTools() map[string]interface{} {
 						"description": "Name or identifier of who is resolving the comment",
 					},
 				},
-				"required": []string{"comment_id", "resolved_by"},
+				"required": []string{"repo_path", "comment_id", "resolved_by"},
 			},
 		},
 	}
@@ -95,25 +96,25 @@ func ListTools() map[string]interface{} {
 	}
 }
 
-func ListComments(paramsRaw json.RawMessage, workingDir string) (interface{}, error) {
+func ListComments(paramsRaw json.RawMessage) (interface{}, error) {
 	stateMgr, err := state.NewManager()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load state: %w", err)
 	}
-	return ListCommentsWithManager(paramsRaw, workingDir, stateMgr)
+	return ListCommentsWithManager(paramsRaw, stateMgr)
 }
 
-func ListCommentsWithManager(paramsRaw json.RawMessage, workingDir string, stateMgr *state.Manager) (interface{}, error) {
+func ListCommentsWithManager(paramsRaw json.RawMessage, stateMgr *state.Manager) (interface{}, error) {
 	var params ListCommentsParams
 	if err := json.Unmarshal(paramsRaw, &params); err != nil {
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
 
-	// Use working directory if repo_path not specified
-	repoPath := params.RepoPath
-	if repoPath == "" {
-		repoPath = workingDir
+	if params.RepoPath == "" {
+		return nil, fmt.Errorf("repo_path is required")
 	}
+
+	repoPath := params.RepoPath
 
 	// Make path absolute
 	absPath, err := filepath.Abs(repoPath)
@@ -177,18 +178,22 @@ func ListCommentsWithManager(paramsRaw json.RawMessage, workingDir string, state
 	}, nil
 }
 
-func ResolveComment(paramsRaw json.RawMessage, workingDir string) (interface{}, error) {
+func ResolveComment(paramsRaw json.RawMessage) (interface{}, error) {
 	stateMgr, err := state.NewManager()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load state: %w", err)
 	}
-	return ResolveCommentWithManager(paramsRaw, workingDir, stateMgr)
+	return ResolveCommentWithManager(paramsRaw, stateMgr)
 }
 
-func ResolveCommentWithManager(paramsRaw json.RawMessage, workingDir string, stateMgr *state.Manager) (interface{}, error) {
+func ResolveCommentWithManager(paramsRaw json.RawMessage, stateMgr *state.Manager) (interface{}, error) {
 	var params ResolveCommentParams
 	if err := json.Unmarshal(paramsRaw, &params); err != nil {
 		return nil, fmt.Errorf("invalid params: %w", err)
+	}
+
+	if params.RepoPath == "" {
+		return nil, fmt.Errorf("repo_path is required")
 	}
 
 	if params.CommentID == "" {
@@ -199,11 +204,7 @@ func ResolveCommentWithManager(paramsRaw json.RawMessage, workingDir string, sta
 		return nil, fmt.Errorf("resolved_by is required")
 	}
 
-	// Use working directory if repo_path not specified
 	repoPath := params.RepoPath
-	if repoPath == "" {
-		repoPath = workingDir
-	}
 
 	// Make path absolute
 	absPath, err := filepath.Abs(repoPath)

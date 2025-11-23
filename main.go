@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -113,26 +112,9 @@ func main() {
 				},
 			},
 			{
-				Name:  "mcp",
-				Usage: "MCP (Model Context Protocol) server for LLM integrations",
-				Subcommands: []*cli.Command{
-					{
-						Name:   "stdio",
-						Usage:  "Start MCP server with stdio transport (for integration with Claude Code, etc.)",
-						Action: mcpStdio,
-					},
-					{
-						Name:   "list-tools",
-						Usage:  "List available MCP tools (legacy)",
-						Action: mcpListTools,
-					},
-					{
-						Name:      "call-tool",
-						Usage:     "Call an MCP tool (legacy)",
-						ArgsUsage: "<tool-name>",
-						Action:    mcpCallTool,
-					},
-				},
+				Name:   "mcp",
+				Usage:  "Start MCP (Model Context Protocol) server for LLM integrations",
+				Action: mcpStdio,
 			},
 		},
 		Action: openBrowser,
@@ -552,72 +534,6 @@ func showConfig(c *cli.Context) error {
 }
 
 func mcpStdio(c *cli.Context) error {
-	// Get current working directory
-	workingDir, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("failed to get working directory: %w", err)
-	}
-
 	// Start MCP server with stdio transport
-	return mcp.StartStdioServer(workingDir)
-}
-
-func mcpListTools(c *cli.Context) error {
-	tools := mcp.ListTools()
-	data, err := json.MarshalIndent(tools, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to encode tools: %w", err)
-	}
-	fmt.Println(string(data))
-	return nil
-}
-
-func mcpCallTool(c *cli.Context) error {
-	if c.NArg() < 1 {
-		return fmt.Errorf("tool name required")
-	}
-
-	toolName := c.Args().Get(0)
-
-	// Get current working directory
-	workingDir, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("failed to get working directory: %w", err)
-	}
-
-	// Read params from stdin
-	var params json.RawMessage
-	if err := json.NewDecoder(os.Stdin).Decode(&params); err != nil {
-		return fmt.Errorf("failed to parse params: %w", err)
-	}
-
-	var result interface{}
-	var toolErr error
-
-	switch toolName {
-	case "list_comments":
-		result, toolErr = mcp.ListComments(params, workingDir)
-	case "resolve_comment":
-		result, toolErr = mcp.ResolveComment(params, workingDir)
-	default:
-		return fmt.Errorf("unknown tool: %s", toolName)
-	}
-
-	response := map[string]interface{}{}
-	if toolErr != nil {
-		response["error"] = map[string]interface{}{
-			"code":    500,
-			"message": toolErr.Error(),
-		}
-	} else {
-		response["result"] = result
-	}
-
-	data, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to encode response: %w", err)
-	}
-
-	fmt.Println(string(data))
-	return nil
+	return mcp.StartStdioServer()
 }

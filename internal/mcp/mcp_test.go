@@ -53,10 +53,12 @@ func TestListTools(t *testing.T) {
 func TestListCommentsWithManager_EmptyRepo(t *testing.T) {
 	manager, repoPath := createTestManager(t)
 
-	params := ListCommentsParams{}
+	params := ListCommentsParams{
+		RepoPath: repoPath,
+	}
 	paramsJSON, _ := json.Marshal(params)
 
-	result, err := ListCommentsWithManager(paramsJSON, repoPath, manager)
+	result, err := ListCommentsWithManager(paramsJSON, manager)
 	if err != nil {
 		t.Fatalf("ListCommentsWithManager failed: %v", err)
 	}
@@ -101,7 +103,7 @@ func TestListCommentsWithManager_WithComments(t *testing.T) {
 	}
 	paramsJSON, _ := json.Marshal(params)
 
-	result, err := ListCommentsWithManager(paramsJSON, repoPath, manager)
+	result, err := ListCommentsWithManager(paramsJSON, manager)
 	if err != nil {
 		t.Fatalf("ListCommentsWithManager failed: %v", err)
 	}
@@ -150,7 +152,7 @@ func TestListCommentsWithManager_FilterByBranchAndCommit(t *testing.T) {
 	}
 	paramsJSON, _ := json.Marshal(params)
 
-	result, err := ListCommentsWithManager(paramsJSON, repoPath, manager)
+	result, err := ListCommentsWithManager(paramsJSON, manager)
 	if err != nil {
 		t.Fatalf("ListCommentsWithManager failed: %v", err)
 	}
@@ -195,7 +197,7 @@ func TestListCommentsWithManager_FilterByResolved(t *testing.T) {
 	}
 	paramsJSON, _ := json.Marshal(params)
 
-	result, err := ListCommentsWithManager(paramsJSON, repoPath, manager)
+	result, err := ListCommentsWithManager(paramsJSON, manager)
 	if err != nil {
 		t.Fatalf("ListCommentsWithManager failed: %v", err)
 	}
@@ -215,7 +217,7 @@ func TestListCommentsWithManager_FilterByResolved(t *testing.T) {
 	}
 	paramsJSON, _ = json.Marshal(params)
 
-	result, err = ListCommentsWithManager(paramsJSON, repoPath, manager)
+	result, err = ListCommentsWithManager(paramsJSON, manager)
 	if err != nil {
 		t.Fatalf("ListCommentsWithManager failed: %v", err)
 	}
@@ -254,7 +256,7 @@ func TestListCommentsWithManager_FilterByFilePath(t *testing.T) {
 	}
 	paramsJSON, _ := json.Marshal(params)
 
-	result, err := ListCommentsWithManager(paramsJSON, repoPath, manager)
+	result, err := ListCommentsWithManager(paramsJSON, manager)
 	if err != nil {
 		t.Fatalf("ListCommentsWithManager failed: %v", err)
 	}
@@ -288,7 +290,7 @@ func TestResolveCommentWithManager_Success(t *testing.T) {
 	}
 	paramsJSON, _ := json.Marshal(params)
 
-	result, err := ResolveCommentWithManager(paramsJSON, repoPath, manager)
+	result, err := ResolveCommentWithManager(paramsJSON, manager)
 	if err != nil {
 		t.Fatalf("ResolveCommentWithManager failed: %v", err)
 	}
@@ -325,7 +327,7 @@ func TestResolveCommentWithManager_MissingCommentID(t *testing.T) {
 	}
 	paramsJSON, _ := json.Marshal(params)
 
-	_, err := ResolveCommentWithManager(paramsJSON, repoPath, manager)
+	_, err := ResolveCommentWithManager(paramsJSON, manager)
 	if err == nil {
 		t.Error("Expected error for missing comment_id")
 	}
@@ -341,7 +343,7 @@ func TestResolveCommentWithManager_MissingResolvedBy(t *testing.T) {
 	}
 	paramsJSON, _ := json.Marshal(params)
 
-	_, err := ResolveCommentWithManager(paramsJSON, repoPath, manager)
+	_, err := ResolveCommentWithManager(paramsJSON, manager)
 	if err == nil {
 		t.Error("Expected error for missing resolved_by")
 	}
@@ -357,50 +359,32 @@ func TestResolveCommentWithManager_CommentNotFound(t *testing.T) {
 	}
 	paramsJSON, _ := json.Marshal(params)
 
-	_, err := ResolveCommentWithManager(paramsJSON, repoPath, manager)
+	_, err := ResolveCommentWithManager(paramsJSON, manager)
 	if err == nil {
 		t.Error("Expected error for nonexistent comment")
 	}
 }
 
 func TestListCommentsWithManager_InvalidJSON(t *testing.T) {
-	manager, repoPath := createTestManager(t)
+	manager, _ := createTestManager(t)
 
 	invalidJSON := []byte(`{"invalid": json}`)
 
-	_, err := ListCommentsWithManager(invalidJSON, repoPath, manager)
+	_, err := ListCommentsWithManager(invalidJSON, manager)
 	if err == nil {
 		t.Error("Expected error for invalid JSON")
 	}
 }
 
-func TestListCommentsWithManager_DefaultsToWorkingDir(t *testing.T) {
-	manager, workingDir := createTestManager(t)
+func TestListCommentsWithManager_MissingRepoPath(t *testing.T) {
+	manager, _ := createTestManager(t)
 
-	branch := "main"
-	commit := "abc123"
-	lineNumber := 42
-
-	// Add comment using absolute path
-	absPath, _ := filepath.Abs(workingDir)
-	_, err := manager.AddComment(absPath, branch, commit, "file.go", &lineNumber, "Test comment")
-	if err != nil {
-		t.Fatalf("Failed to add comment: %v", err)
-	}
-
-	// List without specifying repo_path (should use working dir)
+	// List without specifying repo_path (should error)
 	params := ListCommentsParams{}
 	paramsJSON, _ := json.Marshal(params)
 
-	result, err := ListCommentsWithManager(paramsJSON, workingDir, manager)
-	if err != nil {
-		t.Fatalf("ListCommentsWithManager failed: %v", err)
-	}
-
-	resultMap := result.(map[string]interface{})
-	count := resultMap["count"].(int)
-
-	if count != 1 {
-		t.Errorf("Expected 1 comment using working dir, got %d", count)
+	_, err := ListCommentsWithManager(paramsJSON, manager)
+	if err == nil {
+		t.Error("Expected error for missing repo_path")
 	}
 }
