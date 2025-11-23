@@ -68,6 +68,21 @@ func (r *Repo) RepoPath() (string, error) {
 	return absPath, nil
 }
 
+// GetRemoteURL returns the URL of the origin remote, or empty string if not found
+func (r *Repo) GetRemoteURL() (string, error) {
+	remote, err := r.repo.Remote("origin")
+	if err != nil {
+		// No origin remote, return empty string
+		return "", nil
+	}
+
+	if len(remote.Config().URLs) == 0 {
+		return "", nil
+	}
+
+	return remote.Config().URLs[0], nil
+}
+
 func (r *Repo) GetDiffFiles(baseBranch string) ([]FileInfo, error) {
 	// Get the base branch reference
 	baseBranchRef, err := r.repo.Reference(plumbing.NewBranchReferenceName(baseBranch), true)

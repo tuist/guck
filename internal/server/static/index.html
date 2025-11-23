@@ -274,6 +274,32 @@
                     loadData();
                 }, []);
 
+                function updateDocumentTitle(repoPath, remoteURL) {
+                    let title = "Guck";
+
+                    if (remoteURL) {
+                        // Try to extract account/repo from remote URL
+                        // Supports formats like:
+                        // - https://github.com/account/repo.git
+                        // - git@github.com:account/repo.git
+                        // - https://github.com/account/repo
+                        const match = remoteURL.match(
+                            /[:/]([^/]+\/[^/]+?)(\.git)?$/,
+                        );
+                        if (match) {
+                            title = match[1];
+                        } else {
+                            // Fallback to local repo name
+                            title = repoPath.split("/").pop();
+                        }
+                    } else {
+                        // No remote URL, use local repository name
+                        title = repoPath.split("/").pop();
+                    }
+
+                    document.title = title;
+                }
+
                 async function loadData() {
                     try {
                         setLoading(true);
@@ -294,6 +320,12 @@
 
                         setStatus(statusData);
                         setDiff(diffData);
+
+                        // Update document title with repository name
+                        updateDocumentTitle(
+                            diffData.repo_path,
+                            diffData.remote_url,
+                        );
 
                         // Group comments by file_path
                         const commentsByFile = {};
