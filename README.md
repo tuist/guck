@@ -21,7 +21,7 @@ A Git diff review tool with a web interface, inspired by GitHub's pull request U
 
 ```bash
 # Using mise (recommended)
-mise use -g guck@latest
+mise use -g github:tuist/guck@latest
 
 # Or download from releases
 # https://github.com/tuist/guck/releases
