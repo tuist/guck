@@ -200,27 +200,53 @@ func startServerForeground(c *cli.Context) error {
 func printShellIntegration(c *cli.Context) error {
 	script := `
 # Guck shell integration
-_guck_auto_start() {
-    if command -v guck >/dev/null 2>&1; then
-        if git rev-parse --git-dir >/dev/null 2>&1; then
-            guck daemon start >/dev/null 2>&1 &
-        fi
+
+# Track the current git repository path
+_GUCK_CURRENT_REPO=""
+
+# Get the repository path for the current directory
+_guck_get_repo_path() {
+    if git rev-parse --show-toplevel >/dev/null 2>&1; then
+        git rev-parse --show-toplevel 2>/dev/null
     fi
+}
+
+# Auto-start/stop daemons based on directory changes
+_guck_auto_manage() {
+    if ! command -v guck >/dev/null 2>&1; then
+        return
+    fi
+
+    local new_repo
+    new_repo=$(_guck_get_repo_path)
+
+    # If we left a git repo, stop its daemon
+    if [ -n "$_GUCK_CURRENT_REPO" ] && [ "$_GUCK_CURRENT_REPO" != "$new_repo" ]; then
+        (cd "$_GUCK_CURRENT_REPO" && guck daemon stop >/dev/null 2>&1 &)
+    fi
+
+    # If we entered a git repo, start its daemon
+    if [ -n "$new_repo" ] && [ "$_GUCK_CURRENT_REPO" != "$new_repo" ]; then
+        guck daemon start >/dev/null 2>&1 &
+    fi
+
+    # Update the tracked repo path
+    _GUCK_CURRENT_REPO="$new_repo"
 }
 
 # Hook into cd command
 if [ -n "$ZSH_VERSION" ]; then
-    chpwd_functions+=(/_guck_auto_start)
+    chpwd_functions+=(_guck_auto_manage)
 elif [ -n "$BASH_VERSION" ]; then
     _guck_original_cd=$(declare -f cd)
     cd() {
         builtin cd "$@"
-        _guck_auto_start
+        _guck_auto_manage
     }
 fi
 
-# Start daemon for current directory if it's a git repo
-_guck_auto_start
+# Initialize for current directory if it's a git repo
+_guck_auto_manage
 `
 	fmt.Println(script)
 	return nil
