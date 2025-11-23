@@ -70,6 +70,12 @@
                 overflow-x: auto;
             }
 
+            .diff-prefix {
+                display: inline-block;
+                width: 1ch;
+                user-select: none;
+            }
+
             .diff-line.addition {
                 background-color: rgba(46, 160, 67, 0.15);
             }
@@ -436,6 +442,13 @@
                         highlightedContent = content;
                     }
 
+                    // Add the prefix back to the highlighted content
+                    const prefixSpan =
+                        prefix !== " "
+                            ? `<span class="diff-prefix">${prefix}</span>`
+                            : '<span class="diff-prefix"> </span>';
+                    const fullContent = prefixSpan + highlightedContent;
+
                     return (
                         <React.Fragment key={index}>
                             <div className="diff-line-wrapper">
@@ -457,7 +470,7 @@
                                     <span
                                         className="diff-line-content"
                                         dangerouslySetInnerHTML={{
-                                            __html: highlightedContent,
+                                            __html: fullContent,
                                         }}
                                     />
                                 </div>
