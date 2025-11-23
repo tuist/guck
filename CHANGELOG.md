@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0] - 2025-11-23
+
+### 🚀 Features
+
+- Display repository name in page title from remote origin ([18569f8](18569f86337f423661460473619b5f1069f92903))
+
 ## [0.4.0] - 2025-11-23
 
 ### 🚀 Features
