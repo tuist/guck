@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.0] - 2025-11-24
+
+### 🚀 Features
+
+- Apply syntax highlighting to added and deleted lines (#18) ([b232283](b232283714474c93108e66339000a7f895d70091))
+
 ## [1.4.0] - 2025-11-24
 
 ### 🚀 Features
