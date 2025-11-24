@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.1] - 2025-11-24
+
+### 🐛 Bug Fixes
+
+- Compare against remote tracking branch and merge-base (#19) ([e143e41](e143e41aaff7b4b979a3a590af25c3320c97ac5e))
+
 ## [1.5.0] - 2025-11-24
 
 ### 🚀 Features
