@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.1] - 2025-11-24
+
+### 🐛 Bug Fixes
+
+- Exclude deleted lines from line number count in diff view (#15) ([d700bc2](d700bc2321545c29e2aa6ad2836d263015d534f9))
+
 ## [1.3.0] - 2025-11-24
 
 ### 🚀 Features
