@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2025-11-24
+
+### 🚀 Features
+
+- Add UI visualization for AI agent notes (#13) ([8c63e98](8c63e98e0cd5039402891cd15bb0069c83cc9d34))
+
 ## [1.1.0] - 2025-11-24
 
 ### 🚀 Features
