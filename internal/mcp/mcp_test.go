@@ -33,8 +33,8 @@ func TestListTools(t *testing.T) {
 		t.Fatal("Expected tools to be a slice of maps")
 	}
 
-	if len(toolsList) != 2 {
-		t.Errorf("Expected 2 tools, got %d", len(toolsList))
+	if len(toolsList) != 5 {
+		t.Errorf("Expected 5 tools, got %d", len(toolsList))
 	}
 
 	// Check list_comments tool

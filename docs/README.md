@@ -168,6 +168,12 @@ After adding this configuration, restart Claude Code/Desktop. Guck will be avail
 
 ### Available Tools
 
+The MCP server provides tools for both human review comments and AI agent notes:
+
+#### Comment Tools
+
+These tools manage traditional code review comments created by humans:
+
 #### `list_comments`
 
 Lists code review comments with optional filtering.
@@ -253,7 +259,166 @@ Once configured, you can ask Claude to interact with your code reviews:
 - "Resolve the comment with ID 1234567890-0"
 - "What comments were added on the feature/auth branch?"
 
+#### Note Tools
 
+These tools manage AI agent notes that explain code decisions, rationale, and suggestions. Notes are distinct from review comments and are designed for AI-generated explanations.
+
+#### `add_note`
+
+Add an AI agent note to explain code decisions or provide context.
+
+**Parameters:**
+- `repo_path` (required): Absolute path to the git repository
+- `branch` (required): Branch name where the note applies
+- `commit` (required): Commit hash where the note applies
+- `file_path` (required): File path relative to repository root
+- `line_number` (optional): Line number for inline notes
+- `text` (required): The note content (markdown supported)
+- `author` (required): Author identifier (e.g., "claude", "copilot", "gpt-4")
+- `type` (optional): Note type ("explanation", "rationale", "suggestion"). Defaults to "explanation"
+- `metadata` (optional): Additional metadata as key-value pairs
+
+**Example Request:**
+```json
+{
+  "name": "add_note",
+  "arguments": {
+    "repo_path": "/Users/username/projects/my-repo",
+    "branch": "main",
+    "commit": "abc123def456",
+    "file_path": "src/algorithm.go",
+    "line_number": 42,
+    "text": "This implementation uses a binary search algorithm for O(log n) performance. The sorted invariant is maintained by the insert() method.",
+    "author": "claude",
+    "type": "explanation",
+    "metadata": {
+      "model": "claude-sonnet-4",
+      "context": "code-review"
+    }
+  }
+}
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "note_id": "1234567890-0",
+  "author": "claude",
+  "type": "explanation",
+  "repo_path": "/Users/username/projects/my-repo"
+}
+```
+
+#### `list_notes`
+
+List AI agent notes with optional filtering.
+
+**Parameters:**
+- `repo_path` (required): Absolute path to the git repository
+- `branch` (optional): Filter by branch name
+- `commit` (optional): Filter by commit hash
+- `file_path` (optional): Filter by file path
+- `dismissed` (optional): Filter by dismissal status (true=dismissed, false=active)
+- `author` (optional): Filter by author (e.g., "claude", "copilot")
+
+**Example Request:**
+```json
+{
+  "name": "list_notes",
+  "arguments": {
+    "repo_path": "/Users/username/projects/my-repo",
+    "file_path": "src/algorithm.go",
+    "dismissed": false,
+    "author": "claude"
+  }
+}
+```
+
+**Example Response:**
+```json
+{
+  "notes": [
+    {
+      "id": "1234567890-0",
+      "file_path": "src/algorithm.go",
+      "line_number": 42,
+      "text": "This implementation uses a binary search algorithm...",
+      "timestamp": 1234567890,
+      "branch": "main",
+      "commit": "abc123def456",
+      "author": "claude",
+      "type": "explanation",
+      "metadata": {
+        "model": "claude-sonnet-4"
+      },
+      "dismissed": false
+    }
+  ],
+  "count": 1,
+  "repo_path": "/Users/username/projects/my-repo"
+}
+```
+
+#### `dismiss_note`
+
+Mark an AI agent note as dismissed (acknowledged by user).
+
+**Parameters:**
+- `repo_path` (required): Absolute path to the git repository
+- `note_id` (required): The ID of the note to dismiss
+- `dismissed_by` (required): Identifier of who is dismissing the note
+
+**Example Request:**
+```json
+{
+  "name": "dismiss_note",
+  "arguments": {
+    "repo_path": "/Users/username/projects/my-repo",
+    "note_id": "1234567890-0",
+    "dismissed_by": "user"
+  }
+}
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "note_id": "1234567890-0",
+  "dismissed_by": "user",
+  "repo_path": "/Users/username/projects/my-repo"
+}
+```
+
+### Enhanced Usage Examples with Notes
+
+#### Using with Claude Code
+
+Once configured, you can ask Claude to interact with both comments and notes:
+
+**For Comments (Human Review):**
+- "List all unresolved comments in this repository"
+- "Show me comments on main.go"
+- "Resolve the comment with ID 1234567890-0"
+
+**For Notes (AI Explanations):**
+- "Add a note explaining why we use binary search here" (Claude will add a note with rationale)
+- "List all your previous notes on this file"
+- "Show me all active notes you've created"
+- "Dismiss the note with ID xyz"
+
+**Example Workflow:**
+
+1. You're reviewing code and ask Claude: "Why did we implement it this way?"
+2. Claude analyzes the code and responds, then adds a note:
+   ```
+   I'll add a note explaining this implementation...
+   
+   [Claude adds note via add_note tool with explanation of the algorithm choice]
+   ```
+3. The note is now persisted and can be viewed later
+4. When you've read and understood the note, Claude can dismiss it for you
 
 ## Development
 
