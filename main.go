@@ -7,6 +7,8 @@ import (
 	"runtime"
 
 	"github.com/fatih/color"
+	"github.com/tuist/guck/internal/cli/commands"
+	"github.com/tuist/guck/internal/cli/helpers"
 	"github.com/tuist/guck/internal/config"
 	"github.com/tuist/guck/internal/daemon"
 	"github.com/tuist/guck/internal/git"
@@ -136,6 +138,216 @@ func main() {
 					},
 				},
 			},
+			{
+				Name:  "comments",
+				Usage: "Code review comments management",
+				Subcommands: []*cli.Command{
+					{
+						Name:  "list",
+						Usage: "List code review comments",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:    "repo",
+								Aliases: []string{"r"},
+								Usage:   "Repository path (defaults to current directory)",
+								Value:   ".",
+							},
+							&cli.StringFlag{
+								Name:    "branch",
+								Aliases: []string{"b"},
+								Usage:   "Filter by branch name",
+							},
+							&cli.StringFlag{
+								Name:    "commit",
+								Aliases: []string{"c"},
+								Usage:   "Filter by commit hash",
+							},
+							&cli.StringFlag{
+								Name:    "file",
+								Aliases: []string{"f"},
+								Usage:   "Filter by file path",
+							},
+							&cli.BoolFlag{
+								Name:    "resolved",
+								Aliases: []string{"R"},
+								Usage:   "Show only resolved comments",
+							},
+							&cli.BoolFlag{
+								Name:    "unresolved",
+								Aliases: []string{"U"},
+								Usage:   "Show only unresolved comments",
+							},
+							&cli.StringFlag{
+								Name:    "format",
+								Aliases: []string{"o"},
+								Usage:   "Output format: json, toon (default: human-readable)",
+								Value:   "",
+							},
+						},
+						Action: commands.ListComments,
+					},
+					{
+						Name:      "resolve",
+						Usage:     "Mark a comment as resolved",
+						ArgsUsage: "<comment-id>",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:    "repo",
+								Aliases: []string{"r"},
+								Usage:   "Repository path (defaults to current directory)",
+								Value:   ".",
+							},
+							&cli.StringFlag{
+								Name:     "by",
+								Aliases:  []string{"u"},
+								Usage:    "Who is resolving the comment",
+								Required: true,
+							},
+							&cli.StringFlag{
+								Name:    "format",
+								Aliases: []string{"o"},
+								Usage:   "Output format: json, toon (default: human-readable)",
+								Value:   "",
+							},
+						},
+						Action: commands.ResolveComment,
+					},
+				},
+			},
+			{
+				Name:  "notes",
+				Usage: "AI agent notes management",
+				Subcommands: []*cli.Command{
+					{
+						Name:  "add",
+						Usage: "Add an AI agent note",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:    "repo",
+								Aliases: []string{"r"},
+								Usage:   "Repository path (defaults to current directory)",
+								Value:   ".",
+							},
+							&cli.StringFlag{
+								Name:     "file",
+								Aliases:  []string{"f"},
+								Usage:    "File path relative to repository root",
+								Required: true,
+							},
+							&cli.IntFlag{
+								Name:    "line",
+								Aliases: []string{"l"},
+								Usage:   "Line number for inline notes",
+							},
+							&cli.StringFlag{
+								Name:     "text",
+								Aliases:  []string{"t"},
+								Usage:    "Note content (markdown supported)",
+								Required: true,
+							},
+							&cli.StringFlag{
+								Name:     "author",
+								Aliases:  []string{"a"},
+								Usage:    "Author identifier (e.g., 'claude', 'copilot', 'gpt-4')",
+								Required: true,
+							},
+							&cli.StringFlag{
+								Name:    "type",
+								Aliases: []string{"T"},
+								Usage:   "Note type (explanation, rationale, suggestion)",
+								Value:   "explanation",
+							},
+							&cli.StringSliceFlag{
+								Name:    "metadata",
+								Aliases: []string{"m"},
+								Usage:   "Metadata as key=value pairs",
+							},
+							&cli.StringFlag{
+								Name:    "format",
+								Aliases: []string{"o"},
+								Usage:   "Output format: json, toon (default: human-readable)",
+								Value:   "",
+							},
+						},
+						Action: commands.AddNote,
+					},
+					{
+						Name:  "list",
+						Usage: "List AI agent notes",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:    "repo",
+								Aliases: []string{"r"},
+								Usage:   "Repository path (defaults to current directory)",
+								Value:   ".",
+							},
+							&cli.StringFlag{
+								Name:    "branch",
+								Aliases: []string{"b"},
+								Usage:   "Filter by branch name",
+							},
+							&cli.StringFlag{
+								Name:    "commit",
+								Aliases: []string{"c"},
+								Usage:   "Filter by commit hash",
+							},
+							&cli.StringFlag{
+								Name:    "file",
+								Aliases: []string{"f"},
+								Usage:   "Filter by file path",
+							},
+							&cli.StringFlag{
+								Name:    "author",
+								Aliases: []string{"a"},
+								Usage:   "Filter by author",
+							},
+							&cli.BoolFlag{
+								Name:    "dismissed",
+								Aliases: []string{"D"},
+								Usage:   "Show only dismissed notes",
+							},
+							&cli.BoolFlag{
+								Name:    "active",
+								Aliases: []string{"A"},
+								Usage:   "Show only active (non-dismissed) notes",
+							},
+							&cli.StringFlag{
+								Name:    "format",
+								Aliases: []string{"o"},
+								Usage:   "Output format: json, toon (default: human-readable)",
+								Value:   "",
+							},
+						},
+						Action: commands.ListNotes,
+					},
+					{
+						Name:      "dismiss",
+						Usage:     "Dismiss an AI agent note",
+						ArgsUsage: "<note-id>",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:    "repo",
+								Aliases: []string{"r"},
+								Usage:   "Repository path (defaults to current directory)",
+								Value:   ".",
+							},
+							&cli.StringFlag{
+								Name:     "by",
+								Aliases:  []string{"u"},
+								Usage:    "Who is dismissing the note",
+								Required: true,
+							},
+							&cli.StringFlag{
+								Name:    "format",
+								Aliases: []string{"o"},
+								Usage:   "Output format: json, toon (default: human-readable)",
+								Value:   "",
+							},
+						},
+						Action: commands.DismissNote,
+					},
+				},
+			},
 		},
 		Action: openBrowser,
 	}
@@ -258,7 +470,6 @@ _guck_auto_manage
 }
 
 func startDaemon(c *cli.Context) error {
-	// Implementation similar to Rust version
 	gitRepo, err := git.Open(".")
 	if err != nil {
 		return err
@@ -279,7 +490,7 @@ func startDaemon(c *cli.Context) error {
 		if daemonMgr.IsDaemonRunning(info.PID) {
 			return nil
 		}
-		_ = daemonMgr.UnregisterDaemon(repoPath) // Ignore error, we'll register a new one
+		_ = daemonMgr.UnregisterDaemon(repoPath)
 	}
 
 	cfg, err := config.Load()
@@ -393,8 +604,8 @@ func stopAllDaemons(c *cli.Context) error {
 
 	for _, info := range daemons {
 		if daemonMgr.IsDaemonRunning(info.PID) {
-			_ = daemonMgr.StopDaemon(info.PID)            // Best effort stop
-			_ = daemonMgr.UnregisterDaemon(info.RepoPath) // Best effort cleanup
+			_ = daemonMgr.StopDaemon(info.PID)
+			_ = daemonMgr.UnregisterDaemon(info.RepoPath)
 			successColor.Printf("✓ Stopped daemon for %s\n", info.RepoPath)
 		}
 	}
@@ -472,7 +683,7 @@ func openBrowser(c *cli.Context) error {
 	}
 
 	if !daemonMgr.IsDaemonRunning(info.PID) {
-		_ = daemonMgr.UnregisterDaemon(repoPath) // Clean up stale registration
+		_ = daemonMgr.UnregisterDaemon(repoPath)
 		return fmt.Errorf("daemon is not running. Run 'guck daemon start' first")
 	}
 
@@ -487,7 +698,7 @@ func openBrowser(c *cli.Context) error {
 		cmd = exec.Command("open", url)
 	case "windows":
 		cmd = exec.Command("cmd", "/C", "start", url)
-	default: // linux, freebsd, etc.
+	default:
 		cmd = exec.Command("xdg-open", url)
 	}
 
@@ -557,7 +768,6 @@ func showConfig(c *cli.Context) error {
 }
 
 func mcpStdio(c *cli.Context) error {
-	// Start MCP server with stdio transport
 	return mcp.StartStdioServer()
 }
 
@@ -602,7 +812,7 @@ func addSampleNotes(c *cli.Context) error {
 	}{
 		{
 			filePath:   "main.go",
-			lineNumber: intPtr(42),
+			lineNumber: helpers.IntPtr(42),
 			text:       "This function could benefit from better error handling. Consider wrapping errors with context using fmt.Errorf with %w verb for better error tracing.",
 			author:     "claude",
 			noteType:   "suggestion",
@@ -614,7 +824,7 @@ func addSampleNotes(c *cli.Context) error {
 		},
 		{
 			filePath:   "internal/server/server.go",
-			lineNumber: intPtr(120),
+			lineNumber: helpers.IntPtr(120),
 			text:       "The HTTP handler implements a proper REST API pattern. The use of gorilla/mux provides clean routing and the error handling follows Go best practices.",
 			author:     "claude",
 			noteType:   "explanation",
@@ -636,7 +846,7 @@ func addSampleNotes(c *cli.Context) error {
 		},
 		{
 			filePath:   "internal/state/state.go",
-			lineNumber: intPtr(85),
+			lineNumber: helpers.IntPtr(85),
 			text:       "The state management uses a file-based approach which is simple and reliable. For larger datasets, consider adding indexing or using a lightweight database like SQLite.",
 			author:     "claude",
 			noteType:   "suggestion",
@@ -659,7 +869,7 @@ func addSampleNotes(c *cli.Context) error {
 		},
 		{
 			filePath:   "internal/mcp/mcp.go",
-			lineNumber: intPtr(200),
+			lineNumber: helpers.IntPtr(200),
 			text:       "The MCP implementation follows the protocol specification correctly. This enables seamless integration with AI agents like Claude and GitHub Copilot for code review automation.",
 			author:     "claude",
 			noteType:   "explanation",
@@ -699,8 +909,4 @@ func addSampleNotes(c *cli.Context) error {
 	infoColor.Println("\nRefresh your browser to see the notes in the UI")
 
 	return nil
-}
-
-func intPtr(i int) *int {
-	return &i
 }
