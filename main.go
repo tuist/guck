@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -133,6 +134,216 @@ func main() {
 							},
 						},
 						Action: addSampleNotes,
+					},
+				},
+			},
+			{
+				Name:  "comments",
+				Usage: "Code review comments management",
+				Subcommands: []*cli.Command{
+					{
+						Name:  "list",
+						Usage: "List code review comments",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:    "repo",
+								Aliases: []string{"r"},
+								Usage:   "Repository path (defaults to current directory)",
+								Value:   ".",
+							},
+							&cli.StringFlag{
+								Name:    "branch",
+								Aliases: []string{"b"},
+								Usage:   "Filter by branch name",
+							},
+							&cli.StringFlag{
+								Name:    "commit",
+								Aliases: []string{"c"},
+								Usage:   "Filter by commit hash",
+							},
+							&cli.StringFlag{
+								Name:    "file",
+								Aliases: []string{"f"},
+								Usage:   "Filter by file path",
+							},
+							&cli.BoolFlag{
+								Name:    "resolved",
+								Aliases: []string{"R"},
+								Usage:   "Show only resolved comments",
+							},
+							&cli.BoolFlag{
+								Name:    "unresolved",
+								Aliases: []string{"U"},
+								Usage:   "Show only unresolved comments",
+							},
+							&cli.StringFlag{
+								Name:    "format",
+								Aliases: []string{"o"},
+								Usage:   "Output format: json, toon (default: human-readable)",
+								Value:   "",
+							},
+						},
+						Action: listComments,
+					},
+					{
+						Name:      "resolve",
+						Usage:     "Mark a comment as resolved",
+						ArgsUsage: "<comment-id>",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:    "repo",
+								Aliases: []string{"r"},
+								Usage:   "Repository path (defaults to current directory)",
+								Value:   ".",
+							},
+							&cli.StringFlag{
+								Name:     "by",
+								Aliases:  []string{"u"},
+								Usage:    "Who is resolving the comment",
+								Required: true,
+							},
+							&cli.StringFlag{
+								Name:    "format",
+								Aliases: []string{"o"},
+								Usage:   "Output format: json, toon (default: human-readable)",
+								Value:   "",
+							},
+						},
+						Action: resolveComment,
+					},
+				},
+			},
+			{
+				Name:  "notes",
+				Usage: "AI agent notes management",
+				Subcommands: []*cli.Command{
+					{
+						Name:  "add",
+						Usage: "Add an AI agent note",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:    "repo",
+								Aliases: []string{"r"},
+								Usage:   "Repository path (defaults to current directory)",
+								Value:   ".",
+							},
+							&cli.StringFlag{
+								Name:     "file",
+								Aliases:  []string{"f"},
+								Usage:    "File path relative to repository root",
+								Required: true,
+							},
+							&cli.IntFlag{
+								Name:    "line",
+								Aliases: []string{"l"},
+								Usage:   "Line number for inline notes",
+							},
+							&cli.StringFlag{
+								Name:     "text",
+								Aliases:  []string{"t"},
+								Usage:    "Note content (markdown supported)",
+								Required: true,
+							},
+							&cli.StringFlag{
+								Name:     "author",
+								Aliases:  []string{"a"},
+								Usage:    "Author identifier (e.g., 'claude', 'copilot', 'gpt-4')",
+								Required: true,
+							},
+							&cli.StringFlag{
+								Name:    "type",
+								Aliases: []string{"T"},
+								Usage:   "Note type (explanation, rationale, suggestion)",
+								Value:   "explanation",
+							},
+							&cli.StringSliceFlag{
+								Name:    "metadata",
+								Aliases: []string{"m"},
+								Usage:   "Metadata as key=value pairs",
+							},
+							&cli.StringFlag{
+								Name:    "format",
+								Aliases: []string{"o"},
+								Usage:   "Output format: json, toon (default: human-readable)",
+								Value:   "",
+							},
+						},
+						Action: addNote,
+					},
+					{
+						Name:  "list",
+						Usage: "List AI agent notes",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:    "repo",
+								Aliases: []string{"r"},
+								Usage:   "Repository path (defaults to current directory)",
+								Value:   ".",
+							},
+							&cli.StringFlag{
+								Name:    "branch",
+								Aliases: []string{"b"},
+								Usage:   "Filter by branch name",
+							},
+							&cli.StringFlag{
+								Name:    "commit",
+								Aliases: []string{"c"},
+								Usage:   "Filter by commit hash",
+							},
+							&cli.StringFlag{
+								Name:    "file",
+								Aliases: []string{"f"},
+								Usage:   "Filter by file path",
+							},
+							&cli.StringFlag{
+								Name:    "author",
+								Aliases: []string{"a"},
+								Usage:   "Filter by author",
+							},
+							&cli.BoolFlag{
+								Name:    "dismissed",
+								Aliases: []string{"D"},
+								Usage:   "Show only dismissed notes",
+							},
+							&cli.BoolFlag{
+								Name:    "active",
+								Aliases: []string{"A"},
+								Usage:   "Show only active (non-dismissed) notes",
+							},
+							&cli.StringFlag{
+								Name:    "format",
+								Aliases: []string{"o"},
+								Usage:   "Output format: json, toon (default: human-readable)",
+								Value:   "",
+							},
+						},
+						Action: listNotes,
+					},
+					{
+						Name:      "dismiss",
+						Usage:     "Dismiss an AI agent note",
+						ArgsUsage: "<note-id>",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:    "repo",
+								Aliases: []string{"r"},
+								Usage:   "Repository path (defaults to current directory)",
+								Value:   ".",
+							},
+							&cli.StringFlag{
+								Name:     "by",
+								Aliases:  []string{"u"},
+								Usage:    "Who is dismissing the note",
+								Required: true,
+							},
+							&cli.StringFlag{
+								Name:    "format",
+								Aliases: []string{"o"},
+								Usage:   "Output format: json, toon (default: human-readable)",
+								Value:   "",
+							},
+						},
+						Action: dismissNote,
 					},
 				},
 			},
@@ -703,4 +914,487 @@ func addSampleNotes(c *cli.Context) error {
 
 func intPtr(i int) *int {
 	return &i
+}
+
+// CLI handlers for comments and notes
+
+func listComments(c *cli.Context) error {
+	repoPath := c.String("repo")
+	branch := c.String("branch")
+	commit := c.String("commit")
+	filePath := c.String("file")
+	format := c.String("format")
+
+	// Build params
+	params := mcp.ListCommentsParams{
+		RepoPath: repoPath,
+	}
+
+	if branch != "" {
+		params.Branch = &branch
+	}
+	if commit != "" {
+		params.Commit = &commit
+	}
+	if filePath != "" {
+		params.FilePath = &filePath
+	}
+
+	// Handle resolved filter
+	if c.Bool("resolved") {
+		resolved := true
+		params.Resolved = &resolved
+	} else if c.Bool("unresolved") {
+		resolved := false
+		params.Resolved = &resolved
+	}
+
+	// Convert to JSON and call MCP function
+	paramsJSON, err := json.Marshal(params)
+	if err != nil {
+		return err
+	}
+
+	result, err := mcp.ListComments(json.RawMessage(paramsJSON))
+	if err != nil {
+		return err
+	}
+
+	return outputResult(result, format)
+}
+
+func resolveComment(c *cli.Context) error {
+	if c.NArg() != 1 {
+		return fmt.Errorf("requires exactly 1 argument: comment-id")
+	}
+
+	commentID := c.Args().Get(0)
+	repoPath := c.String("repo")
+	resolvedBy := c.String("by")
+	format := c.String("format")
+
+	params := mcp.ResolveCommentParams{
+		RepoPath:   repoPath,
+		CommentID:  commentID,
+		ResolvedBy: resolvedBy,
+	}
+
+	paramsJSON, err := json.Marshal(params)
+	if err != nil {
+		return err
+	}
+
+	result, err := mcp.ResolveComment(json.RawMessage(paramsJSON))
+	if err != nil {
+		return err
+	}
+
+	return outputResult(result, format)
+}
+
+func addNote(c *cli.Context) error {
+	repoPath := c.String("repo")
+	filePath := c.String("file")
+	text := c.String("text")
+	author := c.String("author")
+	noteType := c.String("type")
+	format := c.String("format")
+
+	// Get current branch and commit
+	gitRepo, err := git.Open(repoPath)
+	if err != nil {
+		return err
+	}
+
+	branch, err := gitRepo.CurrentBranch()
+	if err != nil {
+		return err
+	}
+
+	commit, err := gitRepo.CurrentCommit()
+	if err != nil {
+		return err
+	}
+
+	params := mcp.AddNoteParams{
+		RepoPath: repoPath,
+		Branch:   branch,
+		Commit:   commit,
+		FilePath: filePath,
+		Text:     text,
+		Author:   author,
+		Type:     noteType,
+	}
+
+	// Handle line number
+	if c.IsSet("line") {
+		line := c.Int("line")
+		params.LineNumber = &line
+	}
+
+	// Handle metadata
+	if c.IsSet("metadata") {
+		metadata := make(map[string]string)
+		for _, pair := range c.StringSlice("metadata") {
+			parts := splitKeyValue(pair)
+			if len(parts) == 2 {
+				metadata[parts[0]] = parts[1]
+			}
+		}
+		if len(metadata) > 0 {
+			params.Metadata = metadata
+		}
+	}
+
+	paramsJSON, err := json.Marshal(params)
+	if err != nil {
+		return err
+	}
+
+	result, err := mcp.AddNote(json.RawMessage(paramsJSON))
+	if err != nil {
+		return err
+	}
+
+	return outputResult(result, format)
+}
+
+func listNotes(c *cli.Context) error {
+	repoPath := c.String("repo")
+	branch := c.String("branch")
+	commit := c.String("commit")
+	filePath := c.String("file")
+	author := c.String("author")
+	format := c.String("format")
+
+	params := mcp.ListNotesParams{
+		RepoPath: repoPath,
+	}
+
+	if branch != "" {
+		params.Branch = &branch
+	}
+	if commit != "" {
+		params.Commit = &commit
+	}
+	if filePath != "" {
+		params.FilePath = &filePath
+	}
+	if author != "" {
+		params.Author = &author
+	}
+
+	// Handle dismissed filter
+	if c.Bool("dismissed") {
+		dismissed := true
+		params.Dismissed = &dismissed
+	} else if c.Bool("active") {
+		dismissed := false
+		params.Dismissed = &dismissed
+	}
+
+	paramsJSON, err := json.Marshal(params)
+	if err != nil {
+		return err
+	}
+
+	result, err := mcp.ListNotes(json.RawMessage(paramsJSON))
+	if err != nil {
+		return err
+	}
+
+	return outputResult(result, format)
+}
+
+func dismissNote(c *cli.Context) error {
+	if c.NArg() != 1 {
+		return fmt.Errorf("requires exactly 1 argument: note-id")
+	}
+
+	noteID := c.Args().Get(0)
+	repoPath := c.String("repo")
+	dismissedBy := c.String("by")
+	format := c.String("format")
+
+	params := mcp.DismissNoteParams{
+		RepoPath:    repoPath,
+		NoteID:      noteID,
+		DismissedBy: dismissedBy,
+	}
+
+	paramsJSON, err := json.Marshal(params)
+	if err != nil {
+		return err
+	}
+
+	result, err := mcp.DismissNote(json.RawMessage(paramsJSON))
+	if err != nil {
+		return err
+	}
+
+	return outputResult(result, format)
+}
+
+// Helper functions
+
+func outputResult(result interface{}, format string) error {
+	switch format {
+	case "json":
+		return outputJSON(result)
+	case "toon":
+		return outputToon(result)
+	default:
+		return outputHumanReadable(result)
+	}
+}
+
+func outputJSON(result interface{}) error {
+	encoder := json.NewEncoder(os.Stdout)
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(result)
+}
+
+func outputToon(result interface{}) error {
+	// Toon format: https://github.com/toon-format/toon
+	// This is a simple table format
+	resultMap, ok := result.(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("cannot convert result to toon format")
+	}
+
+	// Check if it's a list result with typed comments
+	if commentsRaw, ok := resultMap["comments"]; ok {
+		// Try typed slice first
+		if comments, ok := commentsRaw.([]mcp.CommentResult); ok {
+			return outputCommentResultsAsToon(comments)
+		}
+		// Try interface slice
+		if comments, ok := commentsRaw.([]interface{}); ok {
+			return outputCommentsAsToon(comments)
+		}
+	}
+
+	// Check if it's a list result with typed notes
+	if notesRaw, ok := resultMap["notes"]; ok {
+		// Try typed slice first
+		if notes, ok := notesRaw.([]mcp.NoteResult); ok {
+			return outputNoteResultsAsToon(notes)
+		}
+		// Try interface slice
+		if notes, ok := notesRaw.([]interface{}); ok {
+			return outputNotesAsToon(notes)
+		}
+	}
+
+	// For simple results, just output as key-value pairs
+	for k, v := range resultMap {
+		fmt.Printf("%s\t%v\n", k, v)
+	}
+	return nil
+}
+
+func outputCommentResultsAsToon(comments []mcp.CommentResult) error {
+	if len(comments) == 0 {
+		fmt.Println("# No comments found")
+		return nil
+	}
+
+	fmt.Println("id\tfile\tline\tresolved\ttext")
+	for _, comment := range comments {
+		id := comment.ID
+		file := comment.FilePath
+		line := ""
+		if comment.LineNumber != nil {
+			line = fmt.Sprintf("%d", *comment.LineNumber)
+		}
+		resolved := comment.Resolved
+		text := truncate(comment.Text, 50)
+
+		fmt.Printf("%s\t%s\t%s\t%v\t%s\n", id, file, line, resolved, text)
+	}
+	return nil
+}
+
+func outputCommentsAsToon(comments []interface{}) error {
+	if len(comments) == 0 {
+		fmt.Println("# No comments found")
+		return nil
+	}
+
+	fmt.Println("id\tfile\tline\tresolved\ttext")
+	for _, item := range comments {
+		comment, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		id := comment["id"]
+		file := comment["file_path"]
+		line := ""
+		if ln, ok := comment["line_number"]; ok && ln != nil {
+			line = fmt.Sprintf("%v", ln)
+		}
+		resolved := comment["resolved"]
+		text := truncate(fmt.Sprintf("%v", comment["text"]), 50)
+
+		fmt.Printf("%s\t%s\t%s\t%v\t%s\n", id, file, line, resolved, text)
+	}
+	return nil
+}
+
+func outputNoteResultsAsToon(notes []mcp.NoteResult) error {
+	if len(notes) == 0 {
+		fmt.Println("# No notes found")
+		return nil
+	}
+
+	fmt.Println("id\tfile\tline\tauthor\ttype\tdismissed\ttext")
+	for _, note := range notes {
+		id := note.ID
+		file := note.FilePath
+		line := ""
+		if note.LineNumber != nil {
+			line = fmt.Sprintf("%d", *note.LineNumber)
+		}
+		author := note.Author
+		noteType := note.Type
+		dismissed := note.Dismissed
+		text := truncate(note.Text, 50)
+
+		fmt.Printf("%s\t%s\t%s\t%s\t%s\t%v\t%s\n", id, file, line, author, noteType, dismissed, text)
+	}
+	return nil
+}
+
+func outputNotesAsToon(notes []interface{}) error {
+	if len(notes) == 0 {
+		fmt.Println("# No notes found")
+		return nil
+	}
+
+	fmt.Println("id\tfile\tline\tauthor\ttype\tdismissed\ttext")
+	for _, item := range notes {
+		note, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		id := note["id"]
+		file := note["file_path"]
+		line := ""
+		if ln, ok := note["line_number"]; ok && ln != nil {
+			line = fmt.Sprintf("%v", ln)
+		}
+		author := note["author"]
+		noteType := note["type"]
+		dismissed := note["dismissed"]
+		text := truncate(fmt.Sprintf("%v", note["text"]), 50)
+
+		fmt.Printf("%s\t%s\t%s\t%s\t%s\t%v\t%s\n", id, file, line, author, noteType, dismissed, text)
+	}
+	return nil
+}
+
+func outputHumanReadable(result interface{}) error {
+	resultMap, ok := result.(map[string]interface{})
+	if !ok {
+		return outputJSON(result)
+	}
+
+	// Check if it's a list result with comments
+	if comments, ok := resultMap["comments"].([]mcp.CommentResult); ok {
+		count := resultMap["count"]
+		infoColor.Printf("Found %v comment(s):\n\n", count)
+
+		for _, comment := range comments {
+			if comment.Resolved {
+				successColor.Print("✓ ")
+			} else {
+				warningColor.Print("• ")
+			}
+
+			fmt.Printf("[%s] ", comment.ID[:8])
+			urlColor.Print(comment.FilePath)
+			if comment.LineNumber != nil {
+				fmt.Printf(":%d", *comment.LineNumber)
+			}
+			fmt.Println()
+
+			fmt.Printf("  %s\n", comment.Text)
+
+			if comment.Resolved {
+				infoColor.Printf("  Resolved by %s\n", comment.ResolvedBy)
+			}
+			fmt.Println()
+		}
+		return nil
+	}
+
+	// Check if it's a list result with notes
+	if notes, ok := resultMap["notes"].([]mcp.NoteResult); ok {
+		count := resultMap["count"]
+		infoColor.Printf("Found %v note(s):\n\n", count)
+
+		for _, note := range notes {
+			if note.Dismissed {
+				color.New(color.Faint).Print("✗ ")
+			} else {
+				infoColor.Print("📝 ")
+			}
+
+			fmt.Printf("[%s] ", note.ID[:8])
+			urlColor.Print(note.FilePath)
+			if note.LineNumber != nil {
+				fmt.Printf(":%d", *note.LineNumber)
+			}
+			fmt.Printf(" (%s)\n", note.Author)
+
+			fmt.Printf("  Type: %s\n", note.Type)
+			fmt.Printf("  %s\n", note.Text)
+
+			if note.Dismissed {
+				infoColor.Printf("  Dismissed by %s\n", note.DismissedBy)
+			}
+			fmt.Println()
+		}
+		return nil
+	}
+
+	// For simple success results
+	if success, ok := resultMap["success"].(bool); ok && success {
+		successColor.Println("✓ Operation completed successfully")
+		for k, v := range resultMap {
+			if k != "success" {
+				infoColor.Printf("  %s: %v\n", k, v)
+			}
+		}
+		return nil
+	}
+
+	// Default: output as JSON
+	return outputJSON(result)
+}
+
+func truncate(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen-3] + "..."
+}
+
+func splitKeyValue(pair string) []string {
+	parts := make([]string, 0, 2)
+	idx := -1
+	for i, ch := range pair {
+		if ch == '=' {
+			idx = i
+			break
+		}
+	}
+	if idx == -1 {
+		return []string{pair}
+	}
+	parts = append(parts, pair[:idx])
+	parts = append(parts, pair[idx+1:])
+	return parts
 }
