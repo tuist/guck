@@ -229,7 +229,10 @@ _guck_auto_manage() {
 
     # If we entered a git repo, start its daemon
     if [ -n "$new_repo" ] && [ "$_GUCK_CURRENT_REPO" != "$new_repo" ]; then
-        guck daemon start >/dev/null 2>&1 &
+        (guck daemon start >/dev/null 2>&1 &)
+        if [ $? -eq 0 ]; then
+            printf "\033[1;36m→\033[0m Run \033[1;34mguck\033[0m to inspect the project's diff\n"
+        fi
     fi
 
     # Update the tracked repo path
