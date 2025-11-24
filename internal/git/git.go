@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
 type Repo struct {
@@ -84,20 +85,28 @@ func (r *Repo) GetRemoteURL() (string, error) {
 }
 
 func (r *Repo) GetDiffFiles(baseBranch string) ([]FileInfo, error) {
-	// Get the base branch reference
-	baseBranchRef, err := r.repo.Reference(plumbing.NewBranchReferenceName(baseBranch), true)
-	if err != nil {
-		return nil, fmt.Errorf("failed to find branch %s: %w", baseBranch, err)
-	}
+	// Try to get the remote tracking branch first (origin/baseBranch)
+	// This ensures we compare against the remote version even if local is outdated
+	remoteBranchRef, err := r.repo.Reference(plumbing.NewRemoteReferenceName("origin", baseBranch), true)
 
-	baseCommit, err := r.repo.CommitObject(baseBranchRef.Hash())
-	if err != nil {
-		return nil, fmt.Errorf("failed to get base commit: %w", err)
-	}
+	var baseCommit *object.Commit
+	if err == nil {
+		// Remote tracking branch exists, use it
+		baseCommit, err = r.repo.CommitObject(remoteBranchRef.Hash())
+		if err != nil {
+			return nil, fmt.Errorf("failed to get remote base commit: %w", err)
+		}
+	} else {
+		// Fall back to local branch if remote tracking branch doesn't exist
+		baseBranchRef, err := r.repo.Reference(plumbing.NewBranchReferenceName(baseBranch), true)
+		if err != nil {
+			return nil, fmt.Errorf("failed to find branch %s: %w", baseBranch, err)
+		}
 
-	baseTree, err := baseCommit.Tree()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get base tree: %w", err)
+		baseCommit, err = r.repo.CommitObject(baseBranchRef.Hash())
+		if err != nil {
+			return nil, fmt.Errorf("failed to get base commit: %w", err)
+		}
 	}
 
 	// Get the current HEAD commit
@@ -109,6 +118,27 @@ func (r *Repo) GetDiffFiles(baseBranch string) ([]FileInfo, error) {
 	headCommit, err := r.repo.CommitObject(head.Hash())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get HEAD commit: %w", err)
+	}
+
+	// Find the merge base between base branch and HEAD
+	mergeBase, err := headCommit.MergeBase(baseCommit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find merge base: %w", err)
+	}
+
+	// Use the merge base as the comparison point
+	var baseTree *object.Tree
+	if len(mergeBase) > 0 {
+		baseTree, err = mergeBase[0].Tree()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get merge base tree: %w", err)
+		}
+	} else {
+		// Fallback to base branch if no merge base found
+		baseTree, err = baseCommit.Tree()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get base tree: %w", err)
+		}
 	}
 
 	headTree, err := headCommit.Tree()
