@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.2] - 2025-11-24
+
+### 🐛 Bug Fixes
+
+- Resolve syntax highlighting theme conflict causing dark comments (#16) ([4820835](4820835ad68e5adc149767831e1d09df4ae6e4c8))
+
 ## [1.3.1] - 2025-11-24
 
 ### 🐛 Bug Fixes
