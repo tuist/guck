@@ -41,16 +41,16 @@
             /* Hide/show highlight.js themes based on color mode */
             /* Default to light theme, hide dark */
             #hljs-dark {
-                display: none !important;
+                display: none;
             }
 
             /* When in dark mode, show dark and hide light */
             [data-color-mode="dark"] #hljs-light {
-                display: none !important;
+                display: none;
             }
 
             [data-color-mode="dark"] #hljs-dark {
-                display: block !important;
+                display: block;
             }
 
             .file-diff-content {
@@ -395,19 +395,6 @@
                     const html = document.documentElement;
                     html.setAttribute("data-color-mode", theme);
                     localStorage.setItem("guck-theme", theme);
-
-                    // Update highlight.js theme
-                    const lightTheme = document.getElementById("hljs-light");
-                    const darkTheme = document.getElementById("hljs-dark");
-                    if (lightTheme && darkTheme) {
-                        if (theme === "dark") {
-                            lightTheme.disabled = true;
-                            darkTheme.disabled = false;
-                        } else {
-                            lightTheme.disabled = false;
-                            darkTheme.disabled = true;
-                        }
-                    }
                 }, [theme]);
 
                 const toggleTheme = () => {
