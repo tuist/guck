@@ -196,6 +196,143 @@
                 box-sizing: border-box;
             }
 
+            /* Note display styling */
+            .note-display {
+                background: linear-gradient(
+                    135deg,
+                    #667eea22 0%,
+                    #764ba222 100%
+                );
+                border: 1px solid #667eea;
+                border-left: 4px solid #667eea;
+                border-radius: 6px;
+                margin: 8px 40px 8px 40px;
+                padding: 12px 16px;
+            }
+
+            [data-color-mode="light"] .note-display {
+                background: linear-gradient(
+                    135deg,
+                    #667eea11 0%,
+                    #764ba211 100%
+                );
+                border-color: #667eea;
+            }
+
+            .note-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 8px;
+                gap: 8px;
+            }
+
+            .note-badges {
+                display: flex;
+                gap: 8px;
+                flex-wrap: wrap;
+            }
+
+            .note-badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+                padding: 2px 8px;
+                border-radius: 12px;
+                font-size: 11px;
+                font-weight: 600;
+                text-transform: uppercase;
+            }
+
+            .note-badge.claude {
+                background-color: #667eea;
+                color: white;
+            }
+
+            .note-badge.copilot {
+                background-color: #24292f;
+                color: white;
+            }
+
+            .note-badge.explanation {
+                background-color: #0969da;
+                color: white;
+            }
+
+            .note-badge.rationale {
+                background-color: #8250df;
+                color: white;
+            }
+
+            .note-badge.suggestion {
+                background-color: #1a7f37;
+                color: white;
+            }
+
+            .note-content {
+                line-height: 1.5;
+            }
+
+            .notes-panel {
+                position: fixed;
+                right: 0;
+                top: 0;
+                bottom: 0;
+                width: 400px;
+                background-color: var(--bgColor-default);
+                border-left: 1px solid var(--borderColor-default);
+                overflow-y: auto;
+                padding: 16px;
+                z-index: 100;
+                transform: translateX(100%);
+                transition: transform 0.3s ease;
+            }
+
+            .notes-panel.open {
+                transform: translateX(0);
+            }
+
+            .notes-panel-toggle {
+                position: fixed;
+                right: 16px;
+                bottom: 16px;
+                z-index: 99;
+            }
+
+            .note-item {
+                background: var(--bgColor-muted);
+                border: 1px solid var(--borderColor-default);
+                border-radius: 6px;
+                padding: 12px;
+                margin-bottom: 12px;
+                cursor: pointer;
+                transition: border-color 0.2s;
+            }
+
+            .note-item:hover {
+                border-color: #667eea;
+            }
+
+            .note-item.dismissed {
+                opacity: 0.5;
+            }
+
+            .filter-section {
+                margin-bottom: 16px;
+                padding-bottom: 16px;
+                border-bottom: 1px solid var(--borderColor-default);
+            }
+
+            .filter-row {
+                display: flex;
+                gap: 12px;
+                align-items: flex-end;
+            }
+
+            .filter-row > div {
+                flex: 1;
+            }
+
             /* File box styling improvements */
             .Box {
                 border-radius: 12px !important;
@@ -234,6 +371,13 @@
                 const [commentText, setCommentText] = useState({});
                 const [activeCommentLine, setActiveCommentLine] =
                     useState(null);
+                const [notes, setNotes] = useState([]);
+                const [notesPanelOpen, setNotesPanelOpen] = useState(false);
+                const [noteFilters, setNoteFilters] = useState({
+                    showDismissed: false,
+                    author: "all",
+                    type: "all",
+                });
 
                 // Theme management
                 const getInitialTheme = () => {
@@ -303,23 +447,31 @@
                 async function loadData() {
                     try {
                         setLoading(true);
-                        const [statusRes, diffRes, commentsRes] =
+                        const [statusRes, diffRes, commentsRes, notesRes] =
                             await Promise.all([
                                 fetch("/api/status"),
                                 fetch("/api/diff"),
                                 fetch("/api/comments"),
+                                fetch("/api/notes"),
                             ]);
 
-                        if (!statusRes.ok || !diffRes.ok || !commentsRes.ok) {
+                        if (
+                            !statusRes.ok ||
+                            !diffRes.ok ||
+                            !commentsRes.ok ||
+                            !notesRes.ok
+                        ) {
                             throw new Error("Failed to load data");
                         }
 
                         const statusData = await statusRes.json();
                         const diffData = await diffRes.json();
                         const commentsData = await commentsRes.json();
+                        const notesData = await notesRes.json();
 
                         setStatus(statusData);
                         setDiff(diffData);
+                        setNotes(notesData || []);
 
                         // Update document title with repository name
                         updateDocumentTitle(
@@ -463,6 +615,33 @@
                     }
                 }
 
+                async function dismissNote(noteId) {
+                    try {
+                        const res = await fetch("/api/notes/dismiss", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({
+                                note_id: noteId,
+                            }),
+                        });
+
+                        if (!res.ok) {
+                            throw new Error("Failed to dismiss note");
+                        }
+
+                        // Update local state to mark note as dismissed
+                        setNotes((prev) =>
+                            prev.map((n) =>
+                                n.id === noteId ? { ...n, dismissed: true } : n,
+                            ),
+                        );
+                    } catch (err) {
+                        setError(err.message);
+                    }
+                }
+
                 function toggleFile(filePath) {
                     setExpandedFiles((prev) => {
                         const next = new Set(prev);
@@ -503,6 +682,24 @@
                     return langMap[ext] || "plaintext";
                 }
 
+                function getFileNotes(filePath, lineNumber = null) {
+                    return notes.filter((note) => {
+                        if (note.file_path !== filePath) return false;
+                        if (
+                            lineNumber !== null &&
+                            note.line_number !== lineNumber
+                        )
+                            return false;
+                        if (
+                            lineNumber === null &&
+                            note.line_number !== null &&
+                            note.line_number !== undefined
+                        )
+                            return false;
+                        return true;
+                    });
+                }
+
                 function renderDiffLine(line, index, filePath, fileComments) {
                     const prefix = line[0];
                     const content = line.slice(1);
@@ -518,6 +715,9 @@
                     const lineNumber = index + 1;
                     const lineComments = (fileComments || []).filter(
                         (c) => c.line_number === lineNumber,
+                    );
+                    const lineNotes = getFileNotes(filePath, lineNumber).filter(
+                        (n) => !n.dismissed,
                     );
                     const commentKey = `${filePath}:${lineNumber}`;
                     const isCommentActive = activeCommentLine === commentKey;
@@ -570,6 +770,60 @@
                                     )}
                                 </div>
                             </div>
+                            {lineNotes.map((note) => (
+                                <div key={note.id} className="note-display">
+                                    <div className="note-header">
+                                        <div className="note-badges">
+                                            <span
+                                                className={`note-badge ${note.author}`}
+                                            >
+                                                {note.author}
+                                            </span>
+                                            {note.type && (
+                                                <span
+                                                    className={`note-badge ${note.type}`}
+                                                >
+                                                    {note.type}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="d-flex gap-2">
+                                            <span className="text-small color-fg-muted">
+                                                {new Date(
+                                                    note.timestamp * 1000,
+                                                ).toLocaleString()}
+                                            </span>
+                                            <button
+                                                className="btn btn-sm"
+                                                onClick={() =>
+                                                    dismissNote(note.id)
+                                                }
+                                            >
+                                                Dismiss
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="note-content">
+                                        {note.text}
+                                    </div>
+                                    {note.metadata &&
+                                        Object.keys(note.metadata).length >
+                                            0 && (
+                                            <div className="text-small color-fg-muted mt-2">
+                                                {Object.entries(
+                                                    note.metadata,
+                                                ).map(([key, value]) => (
+                                                    <span
+                                                        key={key}
+                                                        className="mr-2"
+                                                    >
+                                                        {key}: {value}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+                                </div>
+                            ))}
                             {lineComments
                                 .filter((c) => !c.resolved)
                                 .map((comment) => (
@@ -681,6 +935,34 @@
                 const viewedCount =
                     diff?.files.filter((f) => f.viewed).length || 0;
                 const totalCount = diff?.files.length || 0;
+
+                // Filter notes based on current filters
+                const filteredNotes = notes.filter((note) => {
+                    if (!noteFilters.showDismissed && note.dismissed)
+                        return false;
+                    if (
+                        noteFilters.author !== "all" &&
+                        note.author !== noteFilters.author
+                    )
+                        return false;
+                    if (
+                        noteFilters.type !== "all" &&
+                        note.type !== noteFilters.type
+                    )
+                        return false;
+                    return true;
+                });
+
+                // Get unique authors and types for filters
+                const uniqueAuthors = [...new Set(notes.map((n) => n.author))];
+                const uniqueTypes = [
+                    ...new Set(notes.map((n) => n.type).filter(Boolean)),
+                ];
+
+                // Count total non-dismissed notes
+                const activeNotesCount = notes.filter(
+                    (n) => !n.dismissed,
+                ).length;
 
                 return (
                     <div className="container-lg p-2">
@@ -934,6 +1216,190 @@
                                 </p>
                             </div>
                         )}
+
+                        {/* Notes Panel Toggle Button */}
+                        <button
+                            className="notes-panel-toggle btn btn-primary"
+                            onClick={() => setNotesPanelOpen(!notesPanelOpen)}
+                            title="Toggle AI Agent Notes"
+                        >
+                            <span className="mr-1">AI Notes</span>
+                            {activeNotesCount > 0 && (
+                                <span className="Counter Counter--primary">
+                                    {activeNotesCount}
+                                </span>
+                            )}
+                        </button>
+
+                        {/* Notes Panel */}
+                        <div
+                            className={`notes-panel ${notesPanelOpen ? "open" : ""}`}
+                        >
+                            <div className="d-flex flex-justify-between flex-items-center mb-3">
+                                <h2 className="h3">AI Agent Notes</h2>
+                                <button
+                                    className="btn btn-sm"
+                                    onClick={() => setNotesPanelOpen(false)}
+                                >
+                                    Close
+                                </button>
+                            </div>
+
+                            {/* Filter Section */}
+                            <div className="filter-section">
+                                <div className="filter-row mb-2">
+                                    <div>
+                                        <label className="text-bold text-small d-block mb-1">
+                                            Author
+                                        </label>
+                                        <select
+                                            className="form-select"
+                                            value={noteFilters.author}
+                                            onChange={(e) =>
+                                                setNoteFilters((prev) => ({
+                                                    ...prev,
+                                                    author: e.target.value,
+                                                }))
+                                            }
+                                        >
+                                            <option value="all">
+                                                All Authors
+                                            </option>
+                                            {uniqueAuthors.map((author) => (
+                                                <option
+                                                    key={author}
+                                                    value={author}
+                                                >
+                                                    {author}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="text-bold text-small d-block mb-1">
+                                            Type
+                                        </label>
+                                        <select
+                                            className="form-select"
+                                            value={noteFilters.type}
+                                            onChange={(e) =>
+                                                setNoteFilters((prev) => ({
+                                                    ...prev,
+                                                    type: e.target.value,
+                                                }))
+                                            }
+                                        >
+                                            <option value="all">
+                                                All Types
+                                            </option>
+                                            {uniqueTypes.map((type) => (
+                                                <option key={type} value={type}>
+                                                    {type}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="form-checkbox">
+                                    <label>
+                                        <input
+                                            type="checkbox"
+                                            checked={noteFilters.showDismissed}
+                                            onChange={(e) =>
+                                                setNoteFilters((prev) => ({
+                                                    ...prev,
+                                                    showDismissed:
+                                                        e.target.checked,
+                                                }))
+                                            }
+                                        />
+                                        <span className="ml-1">
+                                            Show dismissed notes
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            {/* Notes List */}
+                            <div>
+                                <div className="text-bold text-small mb-2">
+                                    {filteredNotes.length} note
+                                    {filteredNotes.length !== 1 ? "s" : ""}
+                                </div>
+                                {filteredNotes.length === 0 ? (
+                                    <div className="blankslate">
+                                        <p className="text-small">
+                                            No notes found
+                                        </p>
+                                    </div>
+                                ) : (
+                                    filteredNotes.map((note) => (
+                                        <div
+                                            key={note.id}
+                                            className={`note-item ${note.dismissed ? "dismissed" : ""}`}
+                                            onClick={() => {
+                                                // Scroll to the note in the diff view
+                                                const filePath = note.file_path;
+                                                setExpandedFiles((prev) => {
+                                                    const next = new Set(prev);
+                                                    next.add(filePath);
+                                                    return next;
+                                                });
+                                                setNotesPanelOpen(false);
+                                            }}
+                                        >
+                                            <div className="note-badges mb-2">
+                                                <span
+                                                    className={`note-badge ${note.author}`}
+                                                >
+                                                    {note.author}
+                                                </span>
+                                                {note.type && (
+                                                    <span
+                                                        className={`note-badge ${note.type}`}
+                                                    >
+                                                        {note.type}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="text-small text-bold mb-1">
+                                                {note.file_path}
+                                                {note.line_number &&
+                                                    `:${note.line_number}`}
+                                            </div>
+                                            <div className="text-small color-fg-muted mb-1">
+                                                {note.text.substring(0, 100)}
+                                                {note.text.length > 100
+                                                    ? "..."
+                                                    : ""}
+                                            </div>
+                                            <div className="d-flex flex-justify-between flex-items-center">
+                                                <div className="text-small color-fg-muted">
+                                                    {new Date(
+                                                        note.timestamp * 1000,
+                                                    ).toLocaleString()}
+                                                </div>
+                                                {!note.dismissed && (
+                                                    <button
+                                                        className="btn btn-sm"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            dismissNote(
+                                                                note.id,
+                                                            );
+                                                        }}
+                                                    >
+                                                        Dismiss
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
                     </div>
                 );
             }

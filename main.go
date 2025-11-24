@@ -12,6 +12,7 @@ import (
 	"github.com/tuist/guck/internal/git"
 	"github.com/tuist/guck/internal/mcp"
 	"github.com/tuist/guck/internal/server"
+	"github.com/tuist/guck/internal/state"
 	"github.com/urfave/cli/v2"
 )
 
@@ -115,6 +116,25 @@ func main() {
 				Name:   "mcp",
 				Usage:  "Start MCP (Model Context Protocol) server for LLM integrations",
 				Action: mcpStdio,
+			},
+			{
+				Name:  "dev",
+				Usage: "Development utilities",
+				Subcommands: []*cli.Command{
+					{
+						Name:  "sample-notes",
+						Usage: "Add sample AI agent notes for testing/preview",
+						Flags: []cli.Flag{
+							&cli.IntFlag{
+								Name:    "count",
+								Aliases: []string{"c"},
+								Usage:   "Number of sample notes to generate",
+								Value:   5,
+							},
+						},
+						Action: addSampleNotes,
+					},
+				},
 			},
 		},
 		Action: openBrowser,
@@ -536,4 +556,148 @@ func showConfig(c *cli.Context) error {
 func mcpStdio(c *cli.Context) error {
 	// Start MCP server with stdio transport
 	return mcp.StartStdioServer()
+}
+
+func addSampleNotes(c *cli.Context) error {
+	gitRepo, err := git.Open(".")
+	if err != nil {
+		return err
+	}
+
+	repoPath, err := gitRepo.RepoPath()
+	if err != nil {
+		return err
+	}
+
+	branch, err := gitRepo.CurrentBranch()
+	if err != nil {
+		return err
+	}
+
+	commit, err := gitRepo.CurrentCommit()
+	if err != nil {
+		return err
+	}
+
+	count := c.Int("count")
+	if count <= 0 {
+		count = 5
+	}
+
+	mgr, err := state.NewManager()
+	if err != nil {
+		return err
+	}
+
+	sampleNotes := []struct {
+		filePath   string
+		lineNumber *int
+		text       string
+		author     string
+		noteType   string
+		metadata   map[string]string
+	}{
+		{
+			filePath:   "main.go",
+			lineNumber: intPtr(42),
+			text:       "This function could benefit from better error handling. Consider wrapping errors with context using fmt.Errorf with %w verb for better error tracing.",
+			author:     "claude",
+			noteType:   "suggestion",
+			metadata: map[string]string{
+				"model":      "claude-sonnet-4",
+				"context":    "code_review",
+				"confidence": "high",
+			},
+		},
+		{
+			filePath:   "internal/server/server.go",
+			lineNumber: intPtr(120),
+			text:       "The HTTP handler implements a proper REST API pattern. The use of gorilla/mux provides clean routing and the error handling follows Go best practices.",
+			author:     "claude",
+			noteType:   "explanation",
+			metadata: map[string]string{
+				"model":   "claude-sonnet-4",
+				"context": "documentation",
+			},
+		},
+		{
+			filePath:   "internal/git/git.go",
+			lineNumber: nil,
+			text:       "This module abstracts Git operations effectively. The design allows for easy testing and mocking. Consider adding integration tests for complex Git scenarios.",
+			author:     "copilot",
+			noteType:   "rationale",
+			metadata: map[string]string{
+				"model":   "gpt-4",
+				"context": "architecture_review",
+			},
+		},
+		{
+			filePath:   "internal/state/state.go",
+			lineNumber: intPtr(85),
+			text:       "The state management uses a file-based approach which is simple and reliable. For larger datasets, consider adding indexing or using a lightweight database like SQLite.",
+			author:     "claude",
+			noteType:   "suggestion",
+			metadata: map[string]string{
+				"model":    "claude-sonnet-4",
+				"context":  "performance_review",
+				"priority": "low",
+			},
+		},
+		{
+			filePath:   "README.md",
+			lineNumber: nil,
+			text:       "Documentation is clear and well-structured. The installation instructions cover all major platforms and the usage examples are practical.",
+			author:     "copilot",
+			noteType:   "explanation",
+			metadata: map[string]string{
+				"model":   "gpt-4",
+				"context": "documentation_review",
+			},
+		},
+		{
+			filePath:   "internal/mcp/mcp.go",
+			lineNumber: intPtr(200),
+			text:       "The MCP implementation follows the protocol specification correctly. This enables seamless integration with AI agents like Claude and GitHub Copilot for code review automation.",
+			author:     "claude",
+			noteType:   "explanation",
+			metadata: map[string]string{
+				"model":      "claude-sonnet-4",
+				"context":    "integration_review",
+				"importance": "high",
+			},
+		},
+	}
+
+	added := 0
+	for i := 0; i < count && i < len(sampleNotes); i++ {
+		note := sampleNotes[i]
+		_, err := mgr.AddNote(
+			repoPath,
+			branch,
+			commit,
+			note.filePath,
+			note.lineNumber,
+			note.text,
+			note.author,
+			note.noteType,
+			note.metadata,
+		)
+		if err != nil {
+			warningColor.Printf("⚠ Failed to add note: %v\n", err)
+			continue
+		}
+		added++
+	}
+
+	successColor.Printf("✓ Added %d sample AI agent note(s)\n", added)
+	infoColor.Printf("  Repository: %s\n", repoPath)
+	infoColor.Printf("  Branch: %s\n", branch)
+	infoColor.Printf("  Commit: %s\n", commit[:7])
+	infoColor.Println("\nRefresh your browser to see the notes in the UI")
+
+	return nil
+}
+
+func intPtr(i int) *int {
+	return &i
 }
