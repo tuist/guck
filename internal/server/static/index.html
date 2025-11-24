@@ -709,9 +709,9 @@
                     const commentKey = `${filePath}:${lineNumber}`;
                     const isCommentActive = activeCommentLine === commentKey;
 
-                    // Only apply syntax highlighting to context lines (not additions/deletions)
+                    // Apply syntax highlighting to all lines (context, additions, and deletions)
                     let displayContent = content;
-                    if (lineClass === "context" && window.hljs) {
+                    if (window.hljs) {
                         const language = getLanguageFromPath(filePath);
                         try {
                             const result = hljs.highlight(content, {
@@ -743,18 +743,12 @@
                                     <span className="diff-line-number">
                                         {lineNumber}
                                     </span>
-                                    {lineClass === "context" ? (
-                                        <span
-                                            className="diff-line-content"
-                                            dangerouslySetInnerHTML={{
-                                                __html: displayContent,
-                                            }}
-                                        />
-                                    ) : (
-                                        <span className="diff-line-content">
-                                            {content}
-                                        </span>
-                                    )}
+                                    <span
+                                        className="diff-line-content"
+                                        dangerouslySetInnerHTML={{
+                                            __html: displayContent,
+                                        }}
+                                    />
                                 </div>
                             </div>
                             {lineNotes.map((note) => (
