@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - 2025-11-24
+
+### 🚀 Features
+
+- Improve shell integration message (#14) ([832d4c8](832d4c85f73942ed4c696fc7a9f207f9d61541a6))
+
 ## [1.2.0] - 2025-11-24
 
 ### 🚀 Features
