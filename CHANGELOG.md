@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.0] - 2025-11-24
+
+### 🚀 Features
+
+- Add CLI commands for comments and notes with multiple output formats (#17) ([ef00367](ef0036749cf5c98ccbcf42eb66b15c721abeb494))
+
 ## [1.3.2] - 2025-11-24
 
 ### 🐛 Bug Fixes
