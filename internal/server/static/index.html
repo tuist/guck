@@ -90,10 +90,16 @@
                 background-color: var(--bgColor-success-muted);
             }
 
-            /* Light mode: use dark colors for good contrast on colored backgrounds */
-            .diff-line.addition .diff-line-content,
+            /* Light mode: use very dark colors for good contrast on colored backgrounds */
+            .diff-line.addition .diff-line-content {
+                color: #116329 !important;
+            }
+
+            .diff-line.addition .diff-line-content span[class^="hljs"],
+            .diff-line.addition .diff-line-content span[class*=" hljs"],
+            .diff-line.addition .diff-line-content span:not([class]),
             .diff-line.addition .diff-line-content * {
-                color: #1a4721 !important;
+                color: inherit !important;
             }
 
             .diff-line.deletion {
@@ -104,9 +110,15 @@
                 background-color: var(--bgColor-danger-muted);
             }
 
-            .diff-line.deletion .diff-line-content,
+            .diff-line.deletion .diff-line-content {
+                color: #6e011a !important;
+            }
+
+            .diff-line.deletion .diff-line-content span[class^="hljs"],
+            .diff-line.deletion .diff-line-content span[class*=" hljs"],
+            .diff-line.deletion .diff-line-content span:not([class]),
             .diff-line.deletion .diff-line-content * {
-                color: #82071e !important;
+                color: inherit !important;
             }
 
             .diff-line.context {
@@ -114,14 +126,24 @@
             }
 
             /* Dark mode overrides for diff text */
-            [data-color-mode="dark"] .diff-line.addition .diff-line-content,
-            [data-color-mode="dark"] .diff-line.addition .diff-line-content * {
+            [data-color-mode="dark"] .diff-line.addition .diff-line-content {
                 color: #3fb950 !important;
             }
 
-            [data-color-mode="dark"] .diff-line.deletion .diff-line-content,
-            [data-color-mode="dark"] .diff-line.deletion .diff-line-content * {
+            [data-color-mode="dark"] .diff-line.addition .diff-line-content span[class^="hljs"],
+            [data-color-mode="dark"] .diff-line.addition .diff-line-content span[class*=" hljs"],
+            [data-color-mode="dark"] .diff-line.addition .diff-line-content * {
+                color: inherit !important;
+            }
+
+            [data-color-mode="dark"] .diff-line.deletion .diff-line-content {
                 color: #f85149 !important;
+            }
+
+            [data-color-mode="dark"] .diff-line.deletion .diff-line-content span[class^="hljs"],
+            [data-color-mode="dark"] .diff-line.deletion .diff-line-content span[class*=" hljs"],
+            [data-color-mode="dark"] .diff-line.deletion .diff-line-content * {
+                color: inherit !important;
             }
 
             .file-header-container {
