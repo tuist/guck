@@ -23,20 +23,22 @@ type AppState struct {
 }
 
 type DiffResponse struct {
-	Files     []FileDiff `json:"files"`
-	Branch    string     `json:"branch"`
-	Commit    string     `json:"commit"`
-	RepoPath  string     `json:"repo_path"`
-	RemoteURL string     `json:"remote_url,omitempty"`
+	Files            []FileDiff `json:"files"`
+	UncommittedFiles []FileDiff `json:"uncommitted_files,omitempty"`
+	Branch           string     `json:"branch"`
+	Commit           string     `json:"commit"`
+	RepoPath         string     `json:"repo_path"`
+	RemoteURL        string     `json:"remote_url,omitempty"`
 }
 
 type FileDiff struct {
-	Path      string `json:"path"`
-	Status    string `json:"status"`
-	Additions int    `json:"additions"`
-	Deletions int    `json:"deletions"`
-	Patch     string `json:"patch"`
-	Viewed    bool   `json:"viewed"`
+	Path          string `json:"path"`
+	Status        string `json:"status"`
+	Additions     int    `json:"additions"`
+	Deletions     int    `json:"deletions"`
+	Patch         string `json:"patch"`
+	Viewed        bool   `json:"viewed"`
+	StagingStatus string `json:"staging_status,omitempty"`
 }
 
 type MarkViewedRequest struct {
@@ -158,21 +160,44 @@ func (s *AppState) diffHandler(w http.ResponseWriter, r *http.Request) {
 		viewed := s.StateManager.IsFileViewed(s.RepoPath, currentBranch, currentCommit, file.Path)
 
 		fileDiffs = append(fileDiffs, FileDiff{
-			Path:      file.Path,
-			Status:    file.Status,
-			Additions: file.Additions,
-			Deletions: file.Deletions,
-			Patch:     file.Patch,
-			Viewed:    viewed,
+			Path:          file.Path,
+			Status:        file.Status,
+			Additions:     file.Additions,
+			Deletions:     file.Deletions,
+			Patch:         file.Patch,
+			Viewed:        viewed,
+			StagingStatus: string(git.StagingStatusCommitted),
 		})
 	}
 
+	// Get uncommitted changes
+	uncommittedFiles, err := gitRepo.GetUncommittedChanges()
+	uncommittedFileDiffs := []FileDiff{}
+	if err == nil {
+		for _, file := range uncommittedFiles {
+			// Use a special commit identifier for uncommitted changes state
+			uncommittedCommit := "__uncommitted__"
+			viewed := s.StateManager.IsFileViewed(s.RepoPath, currentBranch, uncommittedCommit, file.Path+":"+string(file.StagingStatus))
+
+			uncommittedFileDiffs = append(uncommittedFileDiffs, FileDiff{
+				Path:          file.Path,
+				Status:        file.Status,
+				Additions:     file.Additions,
+				Deletions:     file.Deletions,
+				Patch:         file.Patch,
+				Viewed:        viewed,
+				StagingStatus: string(file.StagingStatus),
+			})
+		}
+	}
+
 	response := DiffResponse{
-		Files:     fileDiffs,
-		Branch:    currentBranch,
-		Commit:    currentCommit,
-		RepoPath:  s.RepoPath,
-		RemoteURL: remoteURL,
+		Files:            fileDiffs,
+		UncommittedFiles: uncommittedFileDiffs,
+		Branch:           currentBranch,
+		Commit:           currentCommit,
+		RepoPath:         s.RepoPath,
+		RemoteURL:        remoteURL,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
