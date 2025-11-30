@@ -3,6 +3,7 @@ package git
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -217,6 +218,11 @@ func (r *Repo) GetDiffFiles(baseBranch string) ([]FileInfo, error) {
 
 // GetUncommittedChanges returns all uncommitted changes (both staged and unstaged)
 func (r *Repo) GetUncommittedChanges() ([]FileInfo, error) {
+	repoPath, err := r.RepoPath()
+	if err != nil {
+		return nil, err
+	}
+
 	wt, err := r.repo.Worktree()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get worktree: %w", err)
@@ -227,28 +233,12 @@ func (r *Repo) GetUncommittedChanges() ([]FileInfo, error) {
 		return nil, fmt.Errorf("failed to get worktree status: %w", err)
 	}
 
-	// Get HEAD commit tree for comparison
-	head, err := r.repo.Head()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get HEAD: %w", err)
-	}
-
-	headCommit, err := r.repo.CommitObject(head.Hash())
-	if err != nil {
-		return nil, fmt.Errorf("failed to get HEAD commit: %w", err)
-	}
-
-	headTree, err := headCommit.Tree()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get HEAD tree: %w", err)
-	}
-
 	files := []FileInfo{}
 
 	for filePath, fileStatus := range status {
 		// Check if file has staged changes (index vs HEAD)
 		if fileStatus.Staging != git.Unmodified && fileStatus.Staging != git.Untracked {
-			fileInfo, err := r.getFileInfoForStatus(filePath, fileStatus.Staging, headTree, StagingStatusStaged)
+			fileInfo, err := r.getFileInfoWithGitDiff(repoPath, filePath, fileStatus.Staging, StagingStatusStaged)
 			if err == nil {
 				files = append(files, fileInfo)
 			}
@@ -256,7 +246,7 @@ func (r *Repo) GetUncommittedChanges() ([]FileInfo, error) {
 
 		// Check if file has unstaged changes (worktree vs index)
 		if fileStatus.Worktree != git.Unmodified && fileStatus.Worktree != git.Untracked {
-			fileInfo, err := r.getFileInfoForStatus(filePath, fileStatus.Worktree, headTree, StagingStatusUnstaged)
+			fileInfo, err := r.getFileInfoWithGitDiff(repoPath, filePath, fileStatus.Worktree, StagingStatusUnstaged)
 			if err == nil {
 				files = append(files, fileInfo)
 			}
@@ -292,7 +282,8 @@ func (r *Repo) GetUncommittedChanges() ([]FileInfo, error) {
 	return files, nil
 }
 
-func (r *Repo) getFileInfoForStatus(filePath string, statusCode git.StatusCode, headTree *object.Tree, stagingStatus StagingStatus) (FileInfo, error) {
+// getFileInfoWithGitDiff uses git diff command for proper unified diff output
+func (r *Repo) getFileInfoWithGitDiff(repoPath, filePath string, statusCode git.StatusCode, stagingStatus StagingStatus) (FileInfo, error) {
 	status := "modified"
 	switch statusCode {
 	case git.Added:
@@ -305,47 +296,31 @@ func (r *Repo) getFileInfoForStatus(filePath string, statusCode git.StatusCode, 
 		status = "added"
 	}
 
-	// For staged changes, we compare index to HEAD
-	// For unstaged changes, we compare worktree to index (but for simplicity, we compare to HEAD)
-	var oldContent, newContent string
+	// Use git diff command for proper unified diff
+	var cmd *exec.Cmd
+	if stagingStatus == StagingStatusStaged {
+		// Staged changes: compare index to HEAD
+		cmd = exec.Command("git", "diff", "--cached", "--", filePath)
+	} else {
+		// Unstaged changes: compare worktree to index
+		cmd = exec.Command("git", "diff", "--", filePath)
+	}
+	cmd.Dir = repoPath
 
-	// Get content from HEAD tree
-	if headTree != nil && status != "added" {
-		file, err := headTree.File(filePath)
-		if err == nil {
-			oldContent, _ = file.Contents()
-		}
+	output, err := cmd.Output()
+	if err != nil {
+		// If git diff fails, return empty patch
+		return FileInfo{
+			Path:          filePath,
+			Status:        status,
+			Additions:     0,
+			Deletions:     0,
+			Patch:         "",
+			StagingStatus: stagingStatus,
+		}, nil
 	}
 
-	// Get new content based on staging status
-	if status != "deleted" {
-		if stagingStatus == StagingStatusStaged {
-			// For staged changes, read from index
-			idx, err := r.repo.Storer.Index()
-			if err == nil {
-				for _, entry := range idx.Entries {
-					if entry.Name == filePath {
-						blob, err := r.repo.BlobObject(entry.Hash)
-						if err == nil {
-							reader, err := blob.Reader()
-							if err == nil {
-								content, _ := readAll(reader)
-								reader.Close()
-								newContent = string(content)
-							}
-						}
-						break
-					}
-				}
-			}
-		} else {
-			// For unstaged changes, read from worktree
-			newContent, _ = r.readWorktreeFile(filePath)
-		}
-	}
-
-	// Generate patch
-	patch := generateUnifiedDiff(filePath, oldContent, newContent, status)
+	patch := string(output)
 
 	// Count additions and deletions
 	additions := 0
@@ -384,21 +359,6 @@ func (r *Repo) readWorktreeFile(filePath string) (string, error) {
 		return "", err
 	}
 	return string(content), nil
-}
-
-func readAll(reader interface{ Read([]byte) (int, error) }) ([]byte, error) {
-	var result []byte
-	buf := make([]byte, 1024)
-	for {
-		n, err := reader.Read(buf)
-		if n > 0 {
-			result = append(result, buf[:n]...)
-		}
-		if err != nil {
-			break
-		}
-	}
-	return result, nil
 }
 
 func generateUnifiedDiff(filePath, oldContent, newContent string, status string) string {

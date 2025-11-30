@@ -90,6 +90,41 @@
                 background-color: var(--bgColor-success-muted);
             }
 
+            .diff-line.addition .diff-line-content {
+                color: var(--fgColor-default);
+            }
+
+            /* Override syntax highlighting colors on addition lines for better readability */
+            .diff-line.addition .diff-line-content .hljs-keyword,
+            .diff-line.addition .diff-line-content .hljs-selector-tag,
+            .diff-line.addition .diff-line-content .hljs-literal,
+            .diff-line.addition .diff-line-content .hljs-section,
+            .diff-line.addition .diff-line-content .hljs-link,
+            .diff-line.addition .diff-line-content .hljs-string,
+            .diff-line.addition .diff-line-content .hljs-title,
+            .diff-line.addition .diff-line-content .hljs-name,
+            .diff-line.addition .diff-line-content .hljs-type,
+            .diff-line.addition .diff-line-content .hljs-attribute,
+            .diff-line.addition .diff-line-content .hljs-symbol,
+            .diff-line.addition .diff-line-content .hljs-bullet,
+            .diff-line.addition .diff-line-content .hljs-built_in,
+            .diff-line.addition .diff-line-content .hljs-addition,
+            .diff-line.addition .diff-line-content .hljs-variable,
+            .diff-line.addition .diff-line-content .hljs-template-tag,
+            .diff-line.addition .diff-line-content .hljs-template-variable,
+            .diff-line.addition .diff-line-content .hljs-comment,
+            .diff-line.addition .diff-line-content .hljs-quote,
+            .diff-line.addition .diff-line-content .hljs-deletion,
+            .diff-line.addition .diff-line-content .hljs-meta,
+            .diff-line.addition .diff-line-content .hljs-number,
+            .diff-line.addition .diff-line-content .hljs-regexp,
+            .diff-line.addition .diff-line-content .hljs-function,
+            .diff-line.addition .diff-line-content .hljs-params,
+            .diff-line.addition .diff-line-content .hljs-class,
+            .diff-line.addition .diff-line-content span {
+                color: #1a4721 !important;
+            }
+
             .diff-line.deletion {
                 background-color: var(--bgColor-danger-muted);
             }
@@ -98,8 +133,54 @@
                 background-color: var(--bgColor-danger-muted);
             }
 
+            .diff-line.deletion .diff-line-content {
+                color: var(--fgColor-default);
+            }
+
+            /* Override syntax highlighting colors on deletion lines for better readability */
+            .diff-line.deletion .diff-line-content .hljs-keyword,
+            .diff-line.deletion .diff-line-content .hljs-selector-tag,
+            .diff-line.deletion .diff-line-content .hljs-literal,
+            .diff-line.deletion .diff-line-content .hljs-section,
+            .diff-line.deletion .diff-line-content .hljs-link,
+            .diff-line.deletion .diff-line-content .hljs-string,
+            .diff-line.deletion .diff-line-content .hljs-title,
+            .diff-line.deletion .diff-line-content .hljs-name,
+            .diff-line.deletion .diff-line-content .hljs-type,
+            .diff-line.deletion .diff-line-content .hljs-attribute,
+            .diff-line.deletion .diff-line-content .hljs-symbol,
+            .diff-line.deletion .diff-line-content .hljs-bullet,
+            .diff-line.deletion .diff-line-content .hljs-built_in,
+            .diff-line.deletion .diff-line-content .hljs-addition,
+            .diff-line.deletion .diff-line-content .hljs-variable,
+            .diff-line.deletion .diff-line-content .hljs-template-tag,
+            .diff-line.deletion .diff-line-content .hljs-template-variable,
+            .diff-line.deletion .diff-line-content .hljs-comment,
+            .diff-line.deletion .diff-line-content .hljs-quote,
+            .diff-line.deletion .diff-line-content .hljs-deletion,
+            .diff-line.deletion .diff-line-content .hljs-meta,
+            .diff-line.deletion .diff-line-content .hljs-number,
+            .diff-line.deletion .diff-line-content .hljs-regexp,
+            .diff-line.deletion .diff-line-content .hljs-function,
+            .diff-line.deletion .diff-line-content .hljs-params,
+            .diff-line.deletion .diff-line-content .hljs-class,
+            .diff-line.deletion .diff-line-content span {
+                color: #82071e !important;
+            }
+
             .diff-line.context {
                 background-color: transparent;
+            }
+
+            /* Dark mode overrides for diff text */
+            [data-color-mode="dark"] .diff-line.addition .diff-line-content,
+            [data-color-mode="dark"] .diff-line.addition .diff-line-content span {
+                color: #3fb950 !important;
+            }
+
+            [data-color-mode="dark"] .diff-line.deletion .diff-line-content,
+            [data-color-mode="dark"] .diff-line.deletion .diff-line-content span {
+                color: #f85149 !important;
             }
 
             .file-header-container {
