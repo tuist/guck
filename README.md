@@ -7,8 +7,6 @@ A Git diff review tool with a web interface, inspired by GitHub's pull request U
 
 ## Features
 
-adsgasgas
-
 - 🤖 **Auto-start daemon** - Automatically starts a server when you cd into a git repo
 - 🌐 **Web-based interface** - Review diffs in your browser with a GitHub-like UI
 - 📁 **File-by-file diff viewing** - Expand and review individual files
