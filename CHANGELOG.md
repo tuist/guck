@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.0] - 2025-12-06
+
+### 📦 Dependency Updates
+
+- **(deps)** Bump github.com/go-git/go-git/v5 from 5.12.0 to 5.13.0 (#23) ([5f28d31](5f28d31a8e572c3a47f2d90897c94896e0809734))
+
+### 🚀 Features
+
+- Display uncommitted changes (staged and unstaged) (#22) ([5cc5d3e](5cc5d3e6f4cb02d3d9bdeb17cce483090368f3cd))
+
 ## [1.5.1] - 2025-11-24
 
 ### 🐛 Bug Fixes
