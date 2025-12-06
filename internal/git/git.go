@@ -2,6 +2,8 @@ package git
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -14,12 +16,22 @@ type Repo struct {
 	repo *git.Repository
 }
 
+// StagingStatus indicates whether a file change is staged, unstaged, or committed
+type StagingStatus string
+
+const (
+	StagingStatusCommitted StagingStatus = "committed"
+	StagingStatusStaged    StagingStatus = "staged"
+	StagingStatusUnstaged  StagingStatus = "unstaged"
+)
+
 type FileInfo struct {
-	Path      string `json:"path"`
-	Status    string `json:"status"`
-	Additions int    `json:"additions"`
-	Deletions int    `json:"deletions"`
-	Patch     string `json:"patch"`
+	Path          string        `json:"path"`
+	Status        string        `json:"status"`
+	Additions     int           `json:"additions"`
+	Deletions     int           `json:"deletions"`
+	Patch         string        `json:"patch"`
+	StagingStatus StagingStatus `json:"staging_status,omitempty"`
 }
 
 func Open(path string) (*Repo, error) {
@@ -202,4 +214,204 @@ func (r *Repo) GetDiffFiles(baseBranch string) ([]FileInfo, error) {
 	}
 
 	return files, nil
+}
+
+// GetUncommittedChanges returns all uncommitted changes (both staged and unstaged)
+func (r *Repo) GetUncommittedChanges() ([]FileInfo, error) {
+	repoPath, err := r.RepoPath()
+	if err != nil {
+		return nil, err
+	}
+
+	wt, err := r.repo.Worktree()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get worktree: %w", err)
+	}
+
+	status, err := wt.Status()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get worktree status: %w", err)
+	}
+
+	files := []FileInfo{}
+
+	for filePath, fileStatus := range status {
+		// Check if file has staged changes (index vs HEAD)
+		if fileStatus.Staging != git.Unmodified && fileStatus.Staging != git.Untracked {
+			fileInfo, err := r.getFileInfoWithGitDiff(repoPath, filePath, fileStatus.Staging, StagingStatusStaged)
+			if err == nil {
+				files = append(files, fileInfo)
+			}
+		}
+
+		// Check if file has unstaged changes (worktree vs index)
+		if fileStatus.Worktree != git.Unmodified && fileStatus.Worktree != git.Untracked {
+			fileInfo, err := r.getFileInfoWithGitDiff(repoPath, filePath, fileStatus.Worktree, StagingStatusUnstaged)
+			if err == nil {
+				files = append(files, fileInfo)
+			}
+		}
+
+		// Handle untracked files as unstaged additions
+		if fileStatus.Worktree == git.Untracked {
+			content, err := r.readWorktreeFile(filePath)
+			if err != nil {
+				continue
+			}
+			additions := strings.Count(content, "\n")
+			if len(content) > 0 && !strings.HasSuffix(content, "\n") {
+				additions++
+			}
+			patch := fmt.Sprintf("diff --git a/%s b/%s\nnew file mode 100644\n--- /dev/null\n+++ b/%s\n@@ -0,0 +1,%d @@\n", filePath, filePath, filePath, additions)
+			for _, line := range strings.Split(content, "\n") {
+				if line != "" || !strings.HasSuffix(content, "\n") {
+					patch += "+" + line + "\n"
+				}
+			}
+			files = append(files, FileInfo{
+				Path:          filePath,
+				Status:        "added",
+				Additions:     additions,
+				Deletions:     0,
+				Patch:         patch,
+				StagingStatus: StagingStatusUnstaged,
+			})
+		}
+	}
+
+	return files, nil
+}
+
+// getFileInfoWithGitDiff uses git diff command for proper unified diff output
+func (r *Repo) getFileInfoWithGitDiff(repoPath, filePath string, statusCode git.StatusCode, stagingStatus StagingStatus) (FileInfo, error) {
+	status := "modified"
+	switch statusCode {
+	case git.Added:
+		status = "added"
+	case git.Deleted:
+		status = "deleted"
+	case git.Renamed:
+		status = "renamed"
+	case git.Copied:
+		status = "added"
+	}
+
+	// Use git diff command for proper unified diff
+	var cmd *exec.Cmd
+	if stagingStatus == StagingStatusStaged {
+		// Staged changes: compare index to HEAD
+		cmd = exec.Command("git", "diff", "--cached", "--", filePath)
+	} else {
+		// Unstaged changes: compare worktree to index
+		cmd = exec.Command("git", "diff", "--", filePath)
+	}
+	cmd.Dir = repoPath
+
+	output, err := cmd.Output()
+	if err != nil {
+		// If git diff fails, return empty patch
+		return FileInfo{
+			Path:          filePath,
+			Status:        status,
+			Additions:     0,
+			Deletions:     0,
+			Patch:         "",
+			StagingStatus: stagingStatus,
+		}, nil
+	}
+
+	patch := string(output)
+
+	// Count additions and deletions
+	additions := 0
+	deletions := 0
+	lines := strings.Split(patch, "\n")
+	for _, line := range lines {
+		if len(line) == 0 {
+			continue
+		}
+		if strings.HasPrefix(line, "+") && !strings.HasPrefix(line, "+++") {
+			additions++
+		} else if strings.HasPrefix(line, "-") && !strings.HasPrefix(line, "---") {
+			deletions++
+		}
+	}
+
+	return FileInfo{
+		Path:          filePath,
+		Status:        status,
+		Additions:     additions,
+		Deletions:     deletions,
+		Patch:         patch,
+		StagingStatus: stagingStatus,
+	}, nil
+}
+
+func (r *Repo) readWorktreeFile(filePath string) (string, error) {
+	wt, err := r.repo.Worktree()
+	if err != nil {
+		return "", err
+	}
+
+	fullPath := filepath.Join(wt.Filesystem.Root(), filePath)
+	content, err := os.ReadFile(fullPath)
+	if err != nil {
+		return "", err
+	}
+	return string(content), nil
+}
+
+func generateUnifiedDiff(filePath, oldContent, newContent string, status string) string {
+	var patch strings.Builder
+
+	patch.WriteString(fmt.Sprintf("diff --git a/%s b/%s\n", filePath, filePath))
+
+	if status == "added" {
+		patch.WriteString("new file mode 100644\n")
+		patch.WriteString("--- /dev/null\n")
+		patch.WriteString(fmt.Sprintf("+++ b/%s\n", filePath))
+	} else if status == "deleted" {
+		patch.WriteString("deleted file mode 100644\n")
+		patch.WriteString(fmt.Sprintf("--- a/%s\n", filePath))
+		patch.WriteString("+++ /dev/null\n")
+	} else {
+		patch.WriteString(fmt.Sprintf("--- a/%s\n", filePath))
+		patch.WriteString(fmt.Sprintf("+++ b/%s\n", filePath))
+	}
+
+	oldLines := strings.Split(oldContent, "\n")
+	newLines := strings.Split(newContent, "\n")
+
+	// Simple diff: show all old lines as removed, all new lines as added
+	// For a more accurate diff, we'd need a proper diff algorithm
+	if status == "deleted" {
+		if len(oldLines) > 0 {
+			patch.WriteString(fmt.Sprintf("@@ -1,%d +0,0 @@\n", len(oldLines)))
+			for _, line := range oldLines {
+				if line != "" || oldContent != "" {
+					patch.WriteString("-" + line + "\n")
+				}
+			}
+		}
+	} else if status == "added" {
+		if len(newLines) > 0 {
+			patch.WriteString(fmt.Sprintf("@@ -0,0 +1,%d @@\n", len(newLines)))
+			for _, line := range newLines {
+				if line != "" || newContent != "" {
+					patch.WriteString("+" + line + "\n")
+				}
+			}
+		}
+	} else {
+		// For modifications, use a simple line-by-line comparison
+		patch.WriteString(fmt.Sprintf("@@ -1,%d +1,%d @@\n", len(oldLines), len(newLines)))
+		for _, line := range oldLines {
+			patch.WriteString("-" + line + "\n")
+		}
+		for _, line := range newLines {
+			patch.WriteString("+" + line + "\n")
+		}
+	}
+
+	return patch.String()
 }

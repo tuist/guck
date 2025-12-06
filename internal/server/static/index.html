@@ -90,6 +90,18 @@
                 background-color: var(--bgColor-success-muted);
             }
 
+            /* Light mode: use very dark colors for good contrast on colored backgrounds */
+            .diff-line.addition .diff-line-content {
+                color: #116329 !important;
+            }
+
+            .diff-line.addition .diff-line-content span[class^="hljs"],
+            .diff-line.addition .diff-line-content span[class*=" hljs"],
+            .diff-line.addition .diff-line-content span:not([class]),
+            .diff-line.addition .diff-line-content * {
+                color: inherit !important;
+            }
+
             .diff-line.deletion {
                 background-color: var(--bgColor-danger-muted);
             }
@@ -98,8 +110,40 @@
                 background-color: var(--bgColor-danger-muted);
             }
 
+            .diff-line.deletion .diff-line-content {
+                color: #6e011a !important;
+            }
+
+            .diff-line.deletion .diff-line-content span[class^="hljs"],
+            .diff-line.deletion .diff-line-content span[class*=" hljs"],
+            .diff-line.deletion .diff-line-content span:not([class]),
+            .diff-line.deletion .diff-line-content * {
+                color: inherit !important;
+            }
+
             .diff-line.context {
                 background-color: transparent;
+            }
+
+            /* Dark mode overrides for diff text */
+            [data-color-mode="dark"] .diff-line.addition .diff-line-content {
+                color: #3fb950 !important;
+            }
+
+            [data-color-mode="dark"] .diff-line.addition .diff-line-content span[class^="hljs"],
+            [data-color-mode="dark"] .diff-line.addition .diff-line-content span[class*=" hljs"],
+            [data-color-mode="dark"] .diff-line.addition .diff-line-content * {
+                color: inherit !important;
+            }
+
+            [data-color-mode="dark"] .diff-line.deletion .diff-line-content {
+                color: #f85149 !important;
+            }
+
+            [data-color-mode="dark"] .diff-line.deletion .diff-line-content span[class^="hljs"],
+            [data-color-mode="dark"] .diff-line.deletion .diff-line-content span[class*=" hljs"],
+            [data-color-mode="dark"] .diff-line.deletion .diff-line-content * {
+                color: inherit !important;
             }
 
             .file-header-container {
@@ -167,28 +211,19 @@
             }
 
             .comment-form {
-                background-color: #161b22;
-                border: 1px solid #30363d;
+                background-color: var(--bgColor-muted);
+                border: 1px solid var(--borderColor-default);
                 border-radius: 6px;
                 margin: 8px 40px 8px 40px;
                 padding: 16px;
             }
 
             .comment-display {
-                background-color: #161b22;
-                border: 1px solid #30363d;
+                background-color: var(--bgColor-muted);
+                border: 1px solid var(--borderColor-default);
                 border-radius: 6px;
                 margin: 8px 40px 8px 40px;
                 padding: 12px 16px;
-            }
-
-            [data-color-mode="light"] .comment-display {
-                color: white;
-            }
-
-            [data-color-mode="light"] .comment-form {
-                background-color: #ffffff;
-                border: 1px solid #d0d7de;
             }
 
             .comment-form textarea {
@@ -315,6 +350,49 @@
 
             .note-item.dismissed {
                 opacity: 0.5;
+            }
+
+            /* Staging status badges */
+            .staging-badge {
+                display: inline-flex;
+                align-items: center;
+                padding: 2px 8px;
+                border-radius: 12px;
+                font-size: 11px;
+                font-weight: 600;
+                text-transform: uppercase;
+            }
+
+            .staging-badge.staged {
+                background-color: #1a7f37;
+                color: white;
+            }
+
+            .staging-badge.unstaged {
+                background-color: #9a6700;
+                color: white;
+            }
+
+            /* Uncommitted section styling */
+            .uncommitted-section {
+                border: 2px dashed var(--borderColor-default);
+                border-radius: 12px;
+                padding: 16px;
+                margin-bottom: 24px;
+                background-color: var(--bgColor-muted);
+            }
+
+            .uncommitted-section-header {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                margin-bottom: 16px;
+            }
+
+            .uncommitted-icon {
+                width: 24px;
+                height: 24px;
+                color: #9a6700;
             }
 
             .filter-section {
@@ -916,6 +994,7 @@
                 const viewedCount =
                     diff?.files.filter((f) => f.viewed).length || 0;
                 const totalCount = diff?.files.length || 0;
+                const uncommittedCount = diff?.uncommitted_files?.length || 0;
 
                 // Filter notes based on current filters
                 const filteredNotes = notes.filter((note) => {
@@ -1012,6 +1091,85 @@
                             </button>
                         </div>
 
+                        {/* Uncommitted Changes Section */}
+                        {uncommittedCount > 0 && (
+                            <div className="uncommitted-section">
+                                <div className="uncommitted-section-header">
+                                    <svg className="uncommitted-icon" viewBox="0 0 16 16" fill="currentColor">
+                                        <path d="M5.75 1a.75.75 0 0 0-.75.75v3c0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75v-3a.75.75 0 0 0-.75-.75h-4.5zm.75 3V2.5h3V4h-3zm-2.874-.467a.75.75 0 0 0-.752-1.298A7.81 7.81 0 0 0 0 8.25a7.81 7.81 0 0 0 2.874 6.015.75.75 0 1 0 .752-1.298A6.31 6.31 0 0 1 1.5 8.25a6.31 6.31 0 0 1 2.126-4.717zm8.248 0a.75.75 0 0 1 .752-1.298A7.81 7.81 0 0 1 16 8.25a7.81 7.81 0 0 1-2.874 6.015.75.75 0 1 1-.752-1.298A6.31 6.31 0 0 0 14.5 8.25a6.31 6.31 0 0 0-2.126-4.717zM8.75 9.5a.75.75 0 0 0-1.5 0v2.75a.75.75 0 0 0 1.5 0V9.5z"/>
+                                    </svg>
+                                    <div>
+                                        <h3 className="h4 mb-0">Uncommitted Changes</h3>
+                                        <span className="color-fg-muted text-small">
+                                            {uncommittedCount} file{uncommittedCount !== 1 ? "s" : ""} with uncommitted changes
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="d-flex flex-column gap-3">
+                                    {diff.uncommitted_files.map((file) => {
+                                        const statusInfo = getStatusLabel(file.status);
+                                        const fileKey = `uncommitted:${file.path}:${file.staging_status}`;
+                                        const isExpanded = expandedFiles.has(fileKey);
+
+                                        return (
+                                            <div key={fileKey} className="Box">
+                                                <div
+                                                    className="Box-header file-header-container"
+                                                    onClick={() => toggleFile(fileKey)}
+                                                >
+                                                    <div
+                                                        className="d-flex flex-justify-between flex-items-center"
+                                                        style={{ fontSize: "14px" }}
+                                                    >
+                                                        <div className="d-flex flex-items-center">
+                                                            <span className="text-mono text-bold mr-2">
+                                                                {file.path}
+                                                            </span>
+                                                            <span className={`staging-badge ${file.staging_status} mr-2`}>
+                                                                {file.staging_status}
+                                                            </span>
+                                                            <span className={`Label Label--${statusInfo.color} mr-2`}>
+                                                                {statusInfo.label}
+                                                            </span>
+                                                            <span className="color-fg-success mr-2">
+                                                                +{file.additions}
+                                                            </span>
+                                                            <span className="color-fg-danger">
+                                                                -{file.deletions}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                {isExpanded && (
+                                                    <div className="Box-body p-0">
+                                                        <div className="file-diff-content">
+                                                            {file.patch
+                                                                .split("\n")
+                                                                .filter((line) => {
+                                                                    return !(
+                                                                        line.startsWith("diff --git") ||
+                                                                        line.startsWith("index ") ||
+                                                                        line.startsWith("--- ") ||
+                                                                        line.startsWith("+++ ") ||
+                                                                        line.startsWith("new file mode") ||
+                                                                        line.startsWith("old file mode") ||
+                                                                        line.startsWith("deleted file mode") ||
+                                                                        line.startsWith("@@")
+                                                                    );
+                                                                })
+                                                                .map((line, index) =>
+                                                                    renderDiffLine(line, index, file.path, comments[file.path] || [])
+                                                                )}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
                         {diff && diff.files.length > 0 ? (
                             <>
                                 <div className="Box mb-3">
@@ -1028,7 +1186,7 @@
                                         >
                                             <span>
                                                 <strong>{totalCount}</strong>{" "}
-                                                file
+                                                committed file
                                                 {totalCount !== 1
                                                     ? "s"
                                                     : ""}{" "}
@@ -1186,17 +1344,17 @@
                                     })}
                                 </div>
                             </>
-                        ) : (
+                        ) : uncommittedCount === 0 ? (
                             <div className="blankslate">
                                 <h3 className="blankslate-heading">
                                     No changes
                                 </h3>
                                 <p>
                                     There are no differences between your
-                                    current branch and main.
+                                    current branch and main, and no uncommitted changes.
                                 </p>
                             </div>
-                        )}
+                        ) : null}
 
                         {/* Notes Panel Toggle Button */}
                         <button
