@@ -25,26 +25,10 @@ type Comment struct {
 	Metadata   map[string]string `json:"metadata,omitempty"`
 }
 
-type Note struct {
-	ID          string            `json:"id"`
-	FilePath    string            `json:"file_path"`
-	LineNumber  *int              `json:"line_number,omitempty"`
-	Text        string            `json:"text"`
-	Timestamp   int64             `json:"timestamp"`
-	Branch      string            `json:"branch"`
-	Commit      string            `json:"commit"`
-	Author      string            `json:"author"` // e.g., "claude", "copilot", "human:username"
-	Type        string            `json:"type"`   // e.g., "explanation", "rationale", "suggestion"
-	Metadata    map[string]string `json:"metadata,omitempty"`
-	Dismissed   bool              `json:"dismissed"`
-	DismissedBy string            `json:"dismissed_by,omitempty"`
-	DismissedAt int64             `json:"dismissed_at,omitempty"`
-}
 
 type RepoState struct {
 	ViewedFiles []string   `json:"viewed_files"`
 	Comments    []*Comment `json:"comments"`
-	Notes       []*Note    `json:"notes"`
 }
 
 type ViewedState struct {
@@ -120,7 +104,6 @@ func (m *Manager) MarkFileViewed(repoPath, branch, commit, filePath string) erro
 		m.state.Repos[repoPath][branch][commit] = &RepoState{
 			ViewedFiles: []string{},
 			Comments:    []*Comment{},
-			Notes:       []*Note{},
 		}
 	}
 
@@ -168,7 +151,6 @@ func (m *Manager) AddComment(repoPath, branch, commit, filePath string, lineNumb
 		m.state.Repos[repoPath][branch][commit] = &RepoState{
 			ViewedFiles: []string{},
 			Comments:    []*Comment{},
-			Notes:       []*Note{},
 		}
 	}
 
@@ -254,103 +236,6 @@ func (m *Manager) GetAllComments(repoPath string) []*Comment {
 	return allComments
 }
 
-func (m *Manager) AddNote(repoPath, branch, commit, filePath string, lineNumber *int, text, author, noteType string, metadata map[string]string) (*Note, error) {
-	if m.state.Repos[repoPath] == nil {
-		m.state.Repos[repoPath] = make(map[string]map[string]*RepoState)
-	}
-
-	if m.state.Repos[repoPath][branch] == nil {
-		m.state.Repos[repoPath][branch] = make(map[string]*RepoState)
-	}
-
-	if m.state.Repos[repoPath][branch][commit] == nil {
-		m.state.Repos[repoPath][branch][commit] = &RepoState{
-			ViewedFiles: []string{},
-			Comments:    []*Comment{},
-			Notes:       []*Note{},
-		}
-	}
-
-	repoState := m.state.Repos[repoPath][branch][commit]
-
-	timestamp := time.Now().Unix()
-	note := &Note{
-		ID:         fmt.Sprintf("%d-%d", timestamp, len(repoState.Notes)),
-		FilePath:   filePath,
-		LineNumber: lineNumber,
-		Text:       text,
-		Timestamp:  timestamp,
-		Branch:     branch,
-		Commit:     commit,
-		Author:     author,
-		Type:       noteType,
-		Metadata:   metadata,
-		Dismissed:  false,
-	}
-
-	repoState.Notes = append(repoState.Notes, note)
-
-	if err := m.save(); err != nil {
-		return nil, err
-	}
-
-	return note, nil
-}
-
-func (m *Manager) GetNotes(repoPath, branch, commit string, filePath *string) []*Note {
-	if branches, ok := m.state.Repos[repoPath]; ok {
-		if commits, ok := branches[branch]; ok {
-			if repoState, ok := commits[commit]; ok {
-				if filePath == nil {
-					return repoState.Notes
-				}
-
-				filtered := []*Note{}
-				for _, note := range repoState.Notes {
-					if note.FilePath == *filePath {
-						filtered = append(filtered, note)
-					}
-				}
-				return filtered
-			}
-		}
-	}
-
-	return []*Note{}
-}
-
-func (m *Manager) GetAllNotes(repoPath string) []*Note {
-	var allNotes []*Note
-
-	if branches, ok := m.state.Repos[repoPath]; ok {
-		for _, commits := range branches {
-			for _, repoState := range commits {
-				allNotes = append(allNotes, repoState.Notes...)
-			}
-		}
-	}
-
-	return allNotes
-}
-
-func (m *Manager) DismissNote(repoPath, branch, commit, noteID, dismissedBy string) error {
-	if branches, ok := m.state.Repos[repoPath]; ok {
-		if commits, ok := branches[branch]; ok {
-			if repoState, ok := commits[commit]; ok {
-				for _, note := range repoState.Notes {
-					if note.ID == noteID {
-						note.Dismissed = true
-						note.DismissedBy = dismissedBy
-						note.DismissedAt = time.Now().Unix()
-						return m.save()
-					}
-				}
-			}
-		}
-	}
-
-	return fmt.Errorf("note not found")
-}
 
 func (m *Manager) save() error {
 	data, err := json.MarshalIndent(m.state, "", "  ")

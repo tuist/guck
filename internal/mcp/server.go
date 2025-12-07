@@ -310,15 +310,6 @@ func handleToolsCall(request JSONRPCRequest) *JSONRPCResponse {
 	case "add_comment":
 		result, toolErr = AddComment(json.RawMessage(argsJSON))
 
-	case "add_note":
-		result, toolErr = AddNote(json.RawMessage(argsJSON))
-
-	case "list_notes":
-		result, toolErr = ListNotes(json.RawMessage(argsJSON))
-
-	case "dismiss_note":
-		result, toolErr = DismissNote(json.RawMessage(argsJSON))
-
 	default:
 		return &JSONRPCResponse{
 			JSONRPC: "2.0",

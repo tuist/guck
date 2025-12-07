@@ -63,18 +63,6 @@ type ResolveCommentRequest struct {
 	CommentID string `json:"comment_id"`
 }
 
-type AddNoteRequest struct {
-	FilePath   string            `json:"file_path"`
-	LineNumber *int              `json:"line_number,omitempty"`
-	Text       string            `json:"text"`
-	Author     string            `json:"author"`
-	Type       string            `json:"type,omitempty"`
-	Metadata   map[string]string `json:"metadata,omitempty"`
-}
-
-type DismissNoteRequest struct {
-	NoteID string `json:"note_id"`
-}
 
 type StatusResponse struct {
 	RepoPath string `json:"repo_path"`
@@ -113,9 +101,6 @@ func Start(port int, baseBranch string) error {
 	r.HandleFunc("/api/comments", appState.getCommentsHandler).Methods("GET")
 	r.HandleFunc("/api/comments", appState.addCommentHandler).Methods("POST")
 	r.HandleFunc("/api/comments/resolve", appState.resolveCommentHandler).Methods("POST")
-	r.HandleFunc("/api/notes", appState.getNotesHandler).Methods("GET")
-	r.HandleFunc("/api/notes", appState.addNoteHandler).Methods("POST")
-	r.HandleFunc("/api/notes/dismiss", appState.dismissNoteHandler).Methods("POST")
 
 	addr := fmt.Sprintf("127.0.0.1:%d", port)
 	fmt.Printf("Starting server on http://%s\n", addr)
@@ -428,126 +413,3 @@ func (s *AppState) resolveCommentHandler(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusOK)
 }
 
-func (s *AppState) getNotesHandler(w http.ResponseWriter, r *http.Request) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	gitRepo, err := git.Open(".")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	currentBranch, err := gitRepo.CurrentBranch()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	currentCommit, err := gitRepo.CurrentCommit()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	filePath := r.URL.Query().Get("file_path")
-	var filePathPtr *string
-	if filePath != "" {
-		filePathPtr = &filePath
-	}
-
-	notes := s.StateManager.GetNotes(s.RepoPath, currentBranch, currentCommit, filePathPtr)
-
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(notes) // Ignore encode error for HTTP response
-}
-
-func (s *AppState) addNoteHandler(w http.ResponseWriter, r *http.Request) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	var payload AddNoteRequest
-	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	gitRepo, err := git.Open(".")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	currentBranch, err := gitRepo.CurrentBranch()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	currentCommit, err := gitRepo.CurrentCommit()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// Default type to "explanation" if not provided
-	noteType := payload.Type
-	if noteType == "" {
-		noteType = "explanation"
-	}
-
-	note, err := s.StateManager.AddNote(
-		s.RepoPath,
-		currentBranch,
-		currentCommit,
-		payload.FilePath,
-		payload.LineNumber,
-		payload.Text,
-		payload.Author,
-		noteType,
-		payload.Metadata,
-	)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(note) // Ignore encode error for HTTP response
-}
-
-func (s *AppState) dismissNoteHandler(w http.ResponseWriter, r *http.Request) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	var payload DismissNoteRequest
-	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	gitRepo, err := git.Open(".")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	currentBranch, err := gitRepo.CurrentBranch()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	currentCommit, err := gitRepo.CurrentCommit()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if err := s.StateManager.DismissNote(s.RepoPath, currentBranch, currentCommit, payload.NoteID, "web-ui"); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-}

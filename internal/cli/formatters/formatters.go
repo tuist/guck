@@ -54,17 +54,7 @@ func OutputToon(result interface{}) error {
 		}
 	}
 
-	// Check if it's a list result with typed notes
-	if notesRaw, ok := resultMap["notes"]; ok {
-		// Try typed slice first
-		if notes, ok := notesRaw.([]mcp.NoteResult); ok {
-			return OutputNoteResultsAsToon(notes)
-		}
-		// Try interface slice
-		if notes, ok := notesRaw.([]interface{}); ok {
-			return outputNotesAsToon(notes)
-		}
-	}
+
 
 	// For simple results, just output as key-value pairs
 	for k, v := range resultMap {
@@ -109,35 +99,7 @@ func OutputHumanReadable(result interface{}) error {
 		return nil
 	}
 
-	// Check if it's a list result with notes
-	if notes, ok := resultMap["notes"].([]mcp.NoteResult); ok {
-		count := resultMap["count"]
-		infoColor.Printf("Found %v note(s):\n\n", count)
 
-		for _, note := range notes {
-			if note.Dismissed {
-				color.New(color.Faint).Print("✗ ")
-			} else {
-				infoColor.Print("📝 ")
-			}
-
-			fmt.Printf("[%s] ", note.ID[:8])
-			urlColor.Print(note.FilePath)
-			if note.LineNumber != nil {
-				fmt.Printf(":%d", *note.LineNumber)
-			}
-			fmt.Printf(" (%s)\n", note.Author)
-
-			fmt.Printf("  Type: %s\n", note.Type)
-			fmt.Printf("  %s\n", note.Text)
-
-			if note.Dismissed {
-				infoColor.Printf("  Dismissed by %s\n", note.DismissedBy)
-			}
-			fmt.Println()
-		}
-		return nil
-	}
 
 	// For simple success results
 	if success, ok := resultMap["success"].(bool); ok && success {
@@ -204,59 +166,7 @@ func outputCommentsAsToon(comments []interface{}) error {
 	return nil
 }
 
-// OutputNoteResultsAsToon outputs typed notes in Toon format
-func OutputNoteResultsAsToon(notes []mcp.NoteResult) error {
-	if len(notes) == 0 {
-		fmt.Println("# No notes found")
-		return nil
-	}
 
-	fmt.Println("id\tfile\tline\tauthor\ttype\tdismissed\ttext")
-	for _, note := range notes {
-		id := note.ID
-		file := note.FilePath
-		line := ""
-		if note.LineNumber != nil {
-			line = fmt.Sprintf("%d", *note.LineNumber)
-		}
-		author := note.Author
-		noteType := note.Type
-		dismissed := note.Dismissed
-		text := truncate(note.Text, 50)
-
-		fmt.Printf("%s\t%s\t%s\t%s\t%s\t%v\t%s\n", id, file, line, author, noteType, dismissed, text)
-	}
-	return nil
-}
-
-func outputNotesAsToon(notes []interface{}) error {
-	if len(notes) == 0 {
-		fmt.Println("# No notes found")
-		return nil
-	}
-
-	fmt.Println("id\tfile\tline\tauthor\ttype\tdismissed\ttext")
-	for _, item := range notes {
-		note, ok := item.(map[string]interface{})
-		if !ok {
-			continue
-		}
-
-		id := note["id"]
-		file := note["file_path"]
-		line := ""
-		if ln, ok := note["line_number"]; ok && ln != nil {
-			line = fmt.Sprintf("%v", ln)
-		}
-		author := note["author"]
-		noteType := note["type"]
-		dismissed := note["dismissed"]
-		text := truncate(fmt.Sprintf("%v", note["text"]), 50)
-
-		fmt.Printf("%s\t%s\t%s\t%s\t%s\t%v\t%s\n", id, file, line, author, noteType, dismissed, text)
-	}
-	return nil
-}
 
 func truncate(s string, maxLen int) string {
 	if len(s) <= maxLen {
