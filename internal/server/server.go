@@ -46,9 +46,13 @@ type MarkViewedRequest struct {
 }
 
 type AddCommentRequest struct {
-	FilePath   string `json:"file_path"`
-	LineNumber *int   `json:"line_number,omitempty"`
-	Text       string `json:"text"`
+	FilePath   string            `json:"file_path"`
+	LineNumber *int              `json:"line_number,omitempty"`
+	Text       string            `json:"text"`
+	Author     string            `json:"author,omitempty"`
+	Type       string            `json:"type,omitempty"`
+	ParentID   string            `json:"parent_id,omitempty"`
+	Metadata   map[string]string `json:"metadata,omitempty"`
 }
 
 type GetCommentsQuery struct {
@@ -367,7 +371,18 @@ func (s *AppState) addCommentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	comment, err := s.StateManager.AddComment(s.RepoPath, currentBranch, currentCommit, payload.FilePath, payload.LineNumber, payload.Text)
+	comment, err := s.StateManager.AddComment(
+		s.RepoPath,
+		currentBranch,
+		currentCommit,
+		payload.FilePath,
+		payload.LineNumber,
+		payload.Text,
+		payload.Author,
+		payload.Type,
+		payload.ParentID,
+		payload.Metadata,
+	)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

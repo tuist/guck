@@ -197,6 +197,52 @@ func handleToolsList(request JSONRPCRequest) *JSONRPCResponse {
 				"required": []string{"comment_id", "resolved_by"},
 			},
 		},
+		{
+			Name:        "add_comment",
+			Description: "Add a code review comment or agent explanation. Can be used to start a conversation or leave rationale.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"repo_path": map[string]interface{}{
+						"type":        "string",
+						"description": "Absolute path to the git repository",
+					},
+					"branch": map[string]interface{}{
+						"type":        "string",
+						"description": "Branch name",
+					},
+					"commit": map[string]interface{}{
+						"type":        "string",
+						"description": "Commit hash",
+					},
+					"file_path": map[string]interface{}{
+						"type":        "string",
+						"description": "File path relative to repository root",
+					},
+					"line_number": map[string]interface{}{
+						"type":        "integer",
+						"description": "Optional: Line number",
+					},
+					"text": map[string]interface{}{
+						"type":        "string",
+						"description": "Comment text",
+					},
+					"author": map[string]interface{}{
+						"type":        "string",
+						"description": "Optional: Author identifier (e.g., 'agent:claude')",
+					},
+					"type": map[string]interface{}{
+						"type":        "string",
+						"description": "Optional: Comment type (e.g., 'explanation', 'rationale')",
+					},
+					"parent_id": map[string]interface{}{
+						"type":        "string",
+						"description": "Optional: ID of parent comment for threading",
+					},
+				},
+				"required": []string{"repo_path", "branch", "commit", "file_path", "text"},
+			},
+		},
 	}
 
 	return &JSONRPCResponse{
@@ -260,6 +306,9 @@ func handleToolsCall(request JSONRPCRequest) *JSONRPCResponse {
 
 	case "resolve_comment":
 		result, toolErr = ResolveComment(json.RawMessage(argsJSON))
+
+	case "add_comment":
+		result, toolErr = AddComment(json.RawMessage(argsJSON))
 
 	case "add_note":
 		result, toolErr = AddNote(json.RawMessage(argsJSON))

@@ -16,9 +16,13 @@ type Comment struct {
 	Timestamp  int64  `json:"timestamp"`
 	Branch     string `json:"branch"`
 	Commit     string `json:"commit"`
-	Resolved   bool   `json:"resolved"`
-	ResolvedBy string `json:"resolved_by,omitempty"`
-	ResolvedAt int64  `json:"resolved_at,omitempty"`
+	Resolved   bool              `json:"resolved"`
+	ResolvedBy string            `json:"resolved_by,omitempty"`
+	ResolvedAt int64             `json:"resolved_at,omitempty"`
+	Author     string            `json:"author,omitempty"`
+	Type       string            `json:"type,omitempty"` // e.g., "explanation", "rationale", "suggestion"
+	ParentID   string            `json:"parent_id,omitempty"`
+	Metadata   map[string]string `json:"metadata,omitempty"`
 }
 
 type Note struct {
@@ -151,7 +155,7 @@ func (m *Manager) UnmarkFileViewed(repoPath, branch, commit, filePath string) er
 	return m.save()
 }
 
-func (m *Manager) AddComment(repoPath, branch, commit, filePath string, lineNumber *int, text string) (*Comment, error) {
+func (m *Manager) AddComment(repoPath, branch, commit, filePath string, lineNumber *int, text, author, commentType, parentID string, metadata map[string]string) (*Comment, error) {
 	if m.state.Repos[repoPath] == nil {
 		m.state.Repos[repoPath] = make(map[string]map[string]*RepoState)
 	}
@@ -180,6 +184,10 @@ func (m *Manager) AddComment(repoPath, branch, commit, filePath string, lineNumb
 		Branch:     branch,
 		Commit:     commit,
 		Resolved:   false,
+		Author:     author,
+		Type:       commentType,
+		ParentID:   parentID,
+		Metadata:   metadata,
 	}
 
 	repoState.Comments = append(repoState.Comments, comment)

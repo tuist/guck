@@ -22,6 +22,19 @@ type ResolveCommentParams struct {
 	ResolvedBy string `json:"resolved_by"`
 }
 
+type AddCommentParams struct {
+	RepoPath   string            `json:"repo_path"`
+	Branch     string            `json:"branch"`
+	Commit     string            `json:"commit"`
+	FilePath   string            `json:"file_path"`
+	LineNumber *int              `json:"line_number,omitempty"`
+	Text       string            `json:"text"`
+	Author     string            `json:"author,omitempty"`
+	Type       string            `json:"type,omitempty"`
+	ParentID   string            `json:"parent_id,omitempty"`
+	Metadata   map[string]string `json:"metadata,omitempty"`
+}
+
 type AddNoteParams struct {
 	RepoPath   string            `json:"repo_path"`
 	Branch     string            `json:"branch"`
@@ -130,6 +143,52 @@ func ListTools() map[string]interface{} {
 					},
 				},
 				"required": []string{"repo_path", "comment_id", "resolved_by"},
+			},
+		},
+		{
+			"name":        "add_comment",
+			"description": "Add a code review comment or agent explanation. Can be used to start a conversation or leave rationale.",
+			"inputSchema": map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"repo_path": map[string]interface{}{
+						"type":        "string",
+						"description": "Absolute path to the git repository",
+					},
+					"branch": map[string]interface{}{
+						"type":        "string",
+						"description": "Branch name",
+					},
+					"commit": map[string]interface{}{
+						"type":        "string",
+						"description": "Commit hash",
+					},
+					"file_path": map[string]interface{}{
+						"type":        "string",
+						"description": "File path relative to repository root",
+					},
+					"line_number": map[string]interface{}{
+						"type":        "integer",
+						"description": "Optional: Line number",
+					},
+					"text": map[string]interface{}{
+						"type":        "string",
+						"description": "Comment text",
+					},
+					"author": map[string]interface{}{
+						"type":        "string",
+						"description": "Optional: Author identifier (e.g., 'agent:claude')",
+					},
+					"type": map[string]interface{}{
+						"type":        "string",
+						"description": "Optional: Comment type (e.g., 'explanation', 'rationale')",
+					},
+					"parent_id": map[string]interface{}{
+						"type":        "string",
+						"description": "Optional: ID of parent comment for threading",
+					},
+				},
+				"required": []string{"repo_path", "branch", "commit", "file_path", "text"},
 			},
 		},
 		{
@@ -381,6 +440,70 @@ func ResolveCommentWithManager(paramsRaw json.RawMessage, stateMgr *state.Manage
 		"success":     true,
 		"comment_id":  params.CommentID,
 		"resolved_by": params.ResolvedBy,
+		"repo_path":   absPath,
+	}, nil
+}
+
+func AddComment(paramsRaw json.RawMessage) (interface{}, error) {
+	stateMgr, err := state.NewManager()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load state: %w", err)
+	}
+	return AddCommentWithManager(paramsRaw, stateMgr)
+}
+
+func AddCommentWithManager(paramsRaw json.RawMessage, stateMgr *state.Manager) (interface{}, error) {
+	var params AddCommentParams
+	if err := json.Unmarshal(paramsRaw, &params); err != nil {
+		return nil, fmt.Errorf("invalid params: %w", err)
+	}
+
+	if params.RepoPath == "" {
+		return nil, fmt.Errorf("repo_path is required")
+	}
+	if params.Branch == "" {
+		return nil, fmt.Errorf("branch is required")
+	}
+	if params.Commit == "" {
+		return nil, fmt.Errorf("commit is required")
+	}
+	if params.FilePath == "" {
+		return nil, fmt.Errorf("file_path is required")
+	}
+	if params.Text == "" {
+		return nil, fmt.Errorf("text is required")
+	}
+
+	repoPath := params.RepoPath
+
+	// Make path absolute
+	absPath, err := filepath.Abs(repoPath)
+	if err != nil {
+		return nil, fmt.Errorf("invalid repo_path: %w", err)
+	}
+
+	comment, err := stateMgr.AddComment(
+		absPath,
+		params.Branch,
+		params.Commit,
+		params.FilePath,
+		params.LineNumber,
+		params.Text,
+		params.Author,
+		params.Type,
+		params.ParentID,
+		params.Metadata,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to add comment: %w", err)
+	}
+
+	return map[string]interface{}{
+		"success":     true,
+		"comment_id":  comment.ID,
+		"author":      comment.Author,
+		"type":        comment.Type,
+		"parent_id":   comment.ParentID,
 		"repo_path":   absPath,
 	}, nil
 }

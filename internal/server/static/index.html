@@ -613,11 +613,10 @@
                     }
                 }
 
-                async function addComment(filePath, lineNumber = null) {
-                    const key =
-                        lineNumber !== null
-                            ? `${filePath}:${lineNumber}`
-                            : filePath;
+                async function addComment(filePath, lineNumber = null, parentId = null) {
+                    const key = parentId 
+                        ? `reply:${parentId}` 
+                        : (lineNumber !== null ? `${filePath}:${lineNumber}` : filePath);
                     const text = commentText[key];
                     if (!text || !text.trim()) return;
 
@@ -631,6 +630,8 @@
                                 file_path: filePath,
                                 line_number: lineNumber,
                                 text: text.trim(),
+                                parent_id: parentId,
+                                author: "human",
                             }),
                         });
 
@@ -650,7 +651,9 @@
                             [key]: "",
                         }));
 
-                        setActiveCommentLine(null);
+                        if (!parentId) {
+                            setActiveCommentLine(null);
+                        }
                     } catch (err) {
                         setError(err.message);
                     }
@@ -896,28 +899,93 @@
                                 </div>
                             ))}
                             {lineComments
-                                .filter((c) => !c.resolved)
+                                .filter((c) => !c.resolved && !c.parent_id)
                                 .map((comment) => (
-                                    <div
-                                        key={comment.id}
-                                        className="comment-display"
-                                    >
-                                        <div className="d-flex flex-justify-between flex-items-center mb-1">
-                                            <div className="text-small color-fg-muted">
-                                                {new Date(
-                                                    comment.timestamp * 1000,
-                                                ).toLocaleString()}
+                                    <div key={comment.id} className="comment-container mb-2">
+                                        {/* Root Comment */}
+                                        <div className="comment-display">
+                                            <div className="d-flex flex-justify-between flex-items-center mb-1">
+                                                <div className="d-flex flex-items-center">
+                                                    {comment.author && (
+                                                        <span className={`Label Label--${comment.author === 'human' ? 'secondary' : 'accent'} mr-2`}>
+                                                            {comment.author}
+                                                        </span>
+                                                    )}
+                                                    <div className="text-small color-fg-muted">
+                                                        {new Date(comment.timestamp * 1000).toLocaleString()}
+                                                    </div>
+                                                </div>
+                                                <div className="d-flex gap-2">
+                                                    <button 
+                                                        className="btn btn-sm"
+                                                        onClick={() => setActiveCommentLine(activeCommentLine === `reply:${comment.id}` ? null : `reply:${comment.id}`)}
+                                                    >
+                                                        Reply
+                                                    </button>
+                                                    <button
+                                                        className="btn btn-sm"
+                                                        onClick={() => resolveComment(comment.id)}
+                                                    >
+                                                        Resolve
+                                                    </button>
+                                                </div>
                                             </div>
-                                            <button
-                                                className="btn btn-sm"
-                                                onClick={() =>
-                                                    resolveComment(comment.id)
-                                                }
-                                            >
-                                                Resolve
-                                            </button>
+                                            <div>{comment.text}</div>
                                         </div>
-                                        <div>{comment.text}</div>
+                                        
+                                        {/* Replies */}
+                                        {lineComments.filter(r => r.parent_id === comment.id).map(reply => (
+                                            <div key={reply.id} className="comment-display mt-2 ml-4" style={{borderLeft: "2px solid var(--color-accent-fg)"}}>
+                                                <div className="d-flex flex-justify-between flex-items-center mb-1">
+                                                    <div className="d-flex flex-items-center">
+                                                        {reply.author && (
+                                                            <span className={`Label Label--${reply.author === 'human' ? 'secondary' : 'accent'} mr-2`}>
+                                                                {reply.author}
+                                                            </span>
+                                                        )}
+                                                        <div className="text-small color-fg-muted">
+                                                            {new Date(reply.timestamp * 1000).toLocaleString()}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div>{reply.text}</div>
+                                            </div>
+                                        ))}
+
+                                        {/* Reply Form */}
+                                        {activeCommentLine === `reply:${comment.id}` && (
+                                            <div className="comment-form mt-2 ml-4">
+                                                <textarea
+                                                    className="form-control mb-2"
+                                                    style={{ width: "100%" }}
+                                                    placeholder="Reply..."
+                                                    rows="2"
+                                                    value={commentText[`reply:${comment.id}`] || ""}
+                                                    onChange={(e) =>
+                                                        setCommentText((prev) => ({
+                                                            ...prev,
+                                                            [`reply:${comment.id}`]: e.target.value,
+                                                        }))
+                                                    }
+                                                    autoFocus
+                                                />
+                                                <div className="d-flex" style={{ gap: "8px" }}>
+                                                    <button
+                                                        className="btn btn-sm"
+                                                        onClick={() => setActiveCommentLine(null)}
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                    <button
+                                                        className="btn btn-primary btn-sm"
+                                                        onClick={() => addComment(filePath, lineNumber, comment.id)}
+                                                        disabled={!commentText[`reply:${comment.id}`]?.trim()}
+                                                    >
+                                                        Reply
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 ))}
                             {isCommentActive && (
