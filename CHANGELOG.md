@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.0] - 2025-12-07
+
+### 🚀 Features
+
+- Improve diff styling to match GitHub's design (#25) ([3041d0e](3041d0e7c1df02859139e2ac186367beab982f5b))
+
 ## [1.6.0] - 2025-12-06
 
 ### 📦 Dependency Updates
