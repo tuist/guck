@@ -33,8 +33,8 @@ func TestListTools(t *testing.T) {
 		t.Fatal("Expected tools to be a slice of maps")
 	}
 
-	if len(toolsList) != 5 {
-		t.Errorf("Expected 5 tools, got %d", len(toolsList))
+	if len(toolsList) != 6 {
+		t.Errorf("Expected 6 tools, got %d", len(toolsList))
 	}
 
 	// Check list_comments tool
@@ -47,6 +47,12 @@ func TestListTools(t *testing.T) {
 	resolveCommentTool := toolsList[1]
 	if resolveCommentTool["name"] != "resolve_comment" {
 		t.Errorf("Expected second tool to be resolve_comment, got %s", resolveCommentTool["name"])
+	}
+
+	// Check add_comment tool
+	addCommentTool := toolsList[2]
+	if addCommentTool["name"] != "add_comment" {
+		t.Errorf("Expected third tool to be add_comment, got %s", addCommentTool["name"])
 	}
 }
 
@@ -87,12 +93,12 @@ func TestListCommentsWithManager_WithComments(t *testing.T) {
 	filePath := "test.go"
 	lineNumber := 42
 
-	_, err := manager.AddComment(repoPath, branch, commit, filePath, &lineNumber, "Test comment 1")
+	_, err := manager.AddComment(repoPath, branch, commit, filePath, &lineNumber, "Test comment 1", "", "", "", nil)
 	if err != nil {
 		t.Fatalf("Failed to add comment: %v", err)
 	}
 
-	_, err = manager.AddComment(repoPath, branch, commit, filePath, &lineNumber, "Test comment 2")
+	_, err = manager.AddComment(repoPath, branch, commit, filePath, &lineNumber, "Test comment 2", "", "", "", nil)
 	if err != nil {
 		t.Fatalf("Failed to add comment: %v", err)
 	}
@@ -127,17 +133,17 @@ func TestListCommentsWithManager_FilterByBranchAndCommit(t *testing.T) {
 	lineNumber := 42
 
 	// Add comments to different branches/commits
-	_, err := manager.AddComment(repoPath, "main", "commit1", "file.go", &lineNumber, "Comment 1")
+	_, err := manager.AddComment(repoPath, "main", "commit1", "file.go", &lineNumber, "Comment 1", "", "", "", nil)
 	if err != nil {
 		t.Fatalf("Failed to add comment: %v", err)
 	}
 
-	_, err = manager.AddComment(repoPath, "main", "commit2", "file.go", &lineNumber, "Comment 2")
+	_, err = manager.AddComment(repoPath, "main", "commit2", "file.go", &lineNumber, "Comment 2", "", "", "", nil)
 	if err != nil {
 		t.Fatalf("Failed to add comment: %v", err)
 	}
 
-	_, err = manager.AddComment(repoPath, "feature", "commit3", "file.go", &lineNumber, "Comment 3")
+	_, err = manager.AddComment(repoPath, "feature", "commit3", "file.go", &lineNumber, "Comment 3", "", "", "", nil)
 	if err != nil {
 		t.Fatalf("Failed to add comment: %v", err)
 	}
@@ -173,12 +179,12 @@ func TestListCommentsWithManager_FilterByResolved(t *testing.T) {
 	lineNumber := 42
 
 	// Add comments
-	comment1, err := manager.AddComment(repoPath, branch, commit, "file.go", &lineNumber, "Comment 1")
+	comment1, err := manager.AddComment(repoPath, branch, commit, "file.go", &lineNumber, "Comment 1", "", "", "", nil)
 	if err != nil {
 		t.Fatalf("Failed to add comment: %v", err)
 	}
 
-	_, err = manager.AddComment(repoPath, branch, commit, "file.go", &lineNumber, "Comment 2")
+	_, err = manager.AddComment(repoPath, branch, commit, "file.go", &lineNumber, "Comment 2", "", "", "", nil)
 	if err != nil {
 		t.Fatalf("Failed to add comment: %v", err)
 	}
@@ -238,12 +244,12 @@ func TestListCommentsWithManager_FilterByFilePath(t *testing.T) {
 	lineNumber := 42
 
 	// Add comments to different files
-	_, err := manager.AddComment(repoPath, branch, commit, "file1.go", &lineNumber, "Comment 1")
+	_, err := manager.AddComment(repoPath, branch, commit, "file1.go", &lineNumber, "Comment 1", "", "", "", nil)
 	if err != nil {
 		t.Fatalf("Failed to add comment: %v", err)
 	}
 
-	_, err = manager.AddComment(repoPath, branch, commit, "file2.go", &lineNumber, "Comment 2")
+	_, err = manager.AddComment(repoPath, branch, commit, "file2.go", &lineNumber, "Comment 2", "", "", "", nil)
 	if err != nil {
 		t.Fatalf("Failed to add comment: %v", err)
 	}
@@ -277,7 +283,7 @@ func TestResolveCommentWithManager_Success(t *testing.T) {
 	lineNumber := 42
 
 	// Add a comment
-	comment, err := manager.AddComment(repoPath, branch, commit, "file.go", &lineNumber, "Test comment")
+	comment, err := manager.AddComment(repoPath, branch, commit, "file.go", &lineNumber, "Test comment", "", "", "", nil)
 	if err != nil {
 		t.Fatalf("Failed to add comment: %v", err)
 	}

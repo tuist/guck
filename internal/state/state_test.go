@@ -122,7 +122,7 @@ func TestAddComment(t *testing.T) {
 	lineNumber := 42
 	text := "This is a test comment"
 
-	comment, err := manager.AddComment(repoPath, branch, commit, filePath, &lineNumber, text)
+	comment, err := manager.AddComment(repoPath, branch, commit, filePath, &lineNumber, text, "author", "comment", "", nil)
 	if err != nil {
 		t.Fatalf("Failed to add comment: %v", err)
 	}
@@ -167,17 +167,17 @@ func TestGetComments(t *testing.T) {
 	lineNumber := 42
 
 	// Add comments
-	_, err := manager.AddComment(repoPath, branch, commit, filePath1, &lineNumber, "Comment 1")
+	_, err := manager.AddComment(repoPath, branch, commit, filePath1, &lineNumber, "Comment 1", "", "", "", nil)
 	if err != nil {
 		t.Fatalf("Failed to add comment: %v", err)
 	}
 
-	_, err = manager.AddComment(repoPath, branch, commit, filePath2, &lineNumber, "Comment 2")
+	_, err = manager.AddComment(repoPath, branch, commit, filePath2, &lineNumber, "Comment 2", "", "", "", nil)
 	if err != nil {
 		t.Fatalf("Failed to add comment: %v", err)
 	}
 
-	_, err = manager.AddComment(repoPath, branch, commit, filePath1, &lineNumber, "Comment 3")
+	_, err = manager.AddComment(repoPath, branch, commit, filePath1, &lineNumber, "Comment 3", "", "", "", nil)
 	if err != nil {
 		t.Fatalf("Failed to add comment: %v", err)
 	}
@@ -210,7 +210,7 @@ func TestResolveComment(t *testing.T) {
 	lineNumber := 42
 	resolvedBy := "test-user"
 
-	comment, err := manager.AddComment(repoPath, branch, commit, filePath, &lineNumber, "Test comment")
+	comment, err := manager.AddComment(repoPath, branch, commit, filePath, &lineNumber, "Test comment", "", "", "", nil)
 	if err != nil {
 		t.Fatalf("Failed to add comment: %v", err)
 	}
@@ -252,17 +252,17 @@ func TestGetAllComments(t *testing.T) {
 	lineNumber := 42
 
 	// Add comments across different branches and commits
-	_, err := manager.AddComment(repoPath, "main", "commit1", "file1.go", &lineNumber, "Comment 1")
+	_, err := manager.AddComment(repoPath, "main", "commit1", "file1.go", &lineNumber, "Comment 1", "", "", "", nil)
 	if err != nil {
 		t.Fatalf("Failed to add comment: %v", err)
 	}
 
-	_, err = manager.AddComment(repoPath, "main", "commit2", "file2.go", &lineNumber, "Comment 2")
+	_, err = manager.AddComment(repoPath, "main", "commit2", "file2.go", &lineNumber, "Comment 2", "", "", "", nil)
 	if err != nil {
 		t.Fatalf("Failed to add comment: %v", err)
 	}
 
-	_, err = manager.AddComment(repoPath, "feature", "commit3", "file3.go", &lineNumber, "Comment 3")
+	_, err = manager.AddComment(repoPath, "feature", "commit3", "file3.go", &lineNumber, "Comment 3", "", "", "", nil)
 	if err != nil {
 		t.Fatalf("Failed to add comment: %v", err)
 	}
@@ -330,7 +330,7 @@ func TestPersistence(t *testing.T) {
 		t.Fatalf("Failed to mark file as viewed: %v", err)
 	}
 
-	_, err = manager.AddComment(repoPath, branch, commit, filePath, &lineNumber, "Test comment")
+	_, err = manager.AddComment(repoPath, branch, commit, filePath, &lineNumber, "Test comment", "", "", "", nil)
 	if err != nil {
 		t.Fatalf("Failed to add comment: %v", err)
 	}
@@ -368,7 +368,7 @@ func TestCommentWithoutLineNumber(t *testing.T) {
 	commit := "abc123"
 	filePath := "test.go"
 
-	comment, err := manager.AddComment(repoPath, branch, commit, filePath, nil, "File-level comment")
+	comment, err := manager.AddComment(repoPath, branch, commit, filePath, nil, "File-level comment", "", "", "", nil)
 	if err != nil {
 		t.Fatalf("Failed to add comment: %v", err)
 	}
