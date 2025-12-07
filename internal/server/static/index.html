@@ -62,20 +62,8 @@
                 min-height: 100vh;
             }
 
-            /* Hide/show highlight.js themes based on color mode */
-            /* Default to light theme, hide dark */
-            #hljs-dark {
-                display: none;
-            }
-
-            /* When in dark mode, show dark and hide light */
-            [data-color-mode="dark"] #hljs-light {
-                display: none;
-            }
-
-            [data-color-mode="dark"] #hljs-dark {
-                display: block;
-            }
+            /* Hide/show highlight.js themes based on color mode - controlled via JS disabled attribute */
+            /* We don't use display: none here because it doesn't stop the cascade */
 
             .file-diff-content {
                 font-family:
@@ -158,51 +146,7 @@
                 border-radius: 2px;
             }
 
-            /* Improve contrast for syntax highlighting on diff backgrounds */
-            .diff-line.addition .hljs-string,
-            .diff-line.addition .hljs-title,
-            .diff-line.addition .hljs-section,
-            .diff-line.addition .hljs-attribute,
-            .diff-line.addition .hljs-literal,
-            .diff-line.addition .hljs-symbol,
-            .diff-line.addition .hljs-bullet,
-            .diff-line.addition .hljs-meta,
-            .diff-line.addition .hljs-code,
-            .diff-line.addition .hljs-keyword,
-            .diff-line.addition .hljs-selector-tag,
-            .diff-line.addition .hljs-subst,
-            .diff-line.addition .hljs-variable,
-            .diff-line.addition .hljs-template-tag,
-            .diff-line.addition .hljs-template-variable,
-            .diff-line.addition .hljs-type,
-            .diff-line.addition .hljs-built_in,
-            .diff-line.addition .hljs-quote,
-            .diff-line.addition .hljs-comment,
-            .diff-line.addition .hljs-regexp,
-            .diff-line.addition .hljs-link,
-            .diff-line.deletion .hljs-string,
-            .diff-line.deletion .hljs-title,
-            .diff-line.deletion .hljs-section,
-            .diff-line.deletion .hljs-attribute,
-            .diff-line.deletion .hljs-literal,
-            .diff-line.deletion .hljs-symbol,
-            .diff-line.deletion .hljs-bullet,
-            .diff-line.deletion .hljs-meta,
-            .diff-line.deletion .hljs-code,
-            .diff-line.deletion .hljs-keyword,
-            .diff-line.deletion .hljs-selector-tag,
-            .diff-line.deletion .hljs-subst,
-            .diff-line.deletion .hljs-variable,
-            .diff-line.deletion .hljs-template-tag,
-            .diff-line.deletion .hljs-template-variable,
-            .diff-line.deletion .hljs-type,
-            .diff-line.deletion .hljs-built_in,
-            .diff-line.deletion .hljs-quote,
-            .diff-line.deletion .hljs-comment,
-            .diff-line.deletion .hljs-regexp,
-            .diff-line.deletion .hljs-link {
-                filter: brightness(0.6);
-            }
+            /* Remove the brightness filter hack as we now properly toggle themes */
 
             .file-header-container {
                 cursor: pointer;
@@ -531,6 +475,20 @@
                     const html = document.documentElement;
                     html.setAttribute("data-color-mode", theme);
                     localStorage.setItem("guck-theme", theme);
+
+                    // Correctly toggle highlight.js themes by enabling/disabling the stylesheets
+                    const lightLink = document.getElementById('hljs-light');
+                    const darkLink = document.getElementById('hljs-dark');
+                    
+                    if (lightLink && darkLink) {
+                        if (theme === 'dark') {
+                            lightLink.disabled = true;
+                            darkLink.disabled = false;
+                        } else {
+                            lightLink.disabled = false;
+                            darkLink.disabled = true;
+                        }
+                    }
                 }, [theme]);
 
                 const toggleTheme = () => {
