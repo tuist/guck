@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-color-mode="dark" data-dark-theme="dark">
+<html lang="en" data-color-mode="auto" data-light-theme="light" data-dark-theme="dark">
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -32,8 +32,31 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-yaml.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markdown.min.js"></script>
         <style>
+            /* GitHub Diff Colors - Light Mode */
+            :root {
+                --diffBlob-additionLine-bgColor: #dafbe1;
+                --diffBlob-additionNum-bgColor: #aceebb;
+                --diffBlob-additionWord-bgColor: #aceebb;
+                --diffBlob-deletionLine-bgColor: #ffebe9;
+                --diffBlob-deletionNum-bgColor: #ffcecb;
+                --diffBlob-deletionWord-bgColor: #ffcecb;
+                --diffBlob-addition-fgColor: #116329;
+                --diffBlob-deletion-fgColor: #82071e;
+            }
+
+            /* GitHub Diff Colors - Dark Mode */
+            [data-color-mode="dark"] {
+                --diffBlob-additionLine-bgColor: #2ea04326;
+                --diffBlob-additionNum-bgColor: #3fb9504d;
+                --diffBlob-additionWord-bgColor: #2ea04366;
+                --diffBlob-deletionLine-bgColor: #f851491a;
+                --diffBlob-deletionNum-bgColor: #f851494d;
+                --diffBlob-deletionWord-bgColor: #f8514966;
+                --diffBlob-addition-fgColor: #3fb950;
+                --diffBlob-deletion-fgColor: #f85149;
+            }
+
             body {
-                background-color: #0d1117;
                 min-height: 100vh;
             }
 
@@ -44,64 +67,78 @@
                 font-size: 12px;
                 line-height: 20px;
                 overflow-x: auto;
-                padding-left: 32px;
-                margin-left: -32px;
             }
 
             .diff-line {
                 display: flex;
-                width: 100%;
                 min-width: max-content;
             }
 
             .diff-line-number {
-                width: 40px;
+                width: 50px;
+                min-width: 50px;
                 padding: 0 10px;
                 text-align: right;
                 user-select: none;
-                color: #8b949e;
+                -webkit-user-select: none;
+                -moz-user-select: none;
+                color: var(--fgColor-muted);
                 flex-shrink: 0;
+                border-right: 1px solid var(--borderColor-default);
             }
 
             .diff-line-content {
                 flex: 1;
                 padding: 0 10px;
                 white-space: pre;
-                overflow-x: auto;
             }
 
-            .diff-prefix {
-                display: inline-block;
-                width: 1ch;
-                user-select: none;
-            }
-
+            /* Addition (green) lines */
             .diff-line.addition {
-                background-color: rgba(46, 160, 67, 0.15);
+                background-color: var(--diffBlob-additionLine-bgColor);
             }
 
             .diff-line.addition .diff-line-number {
-                background-color: rgba(46, 160, 67, 0.15);
+                background-color: var(--diffBlob-additionNum-bgColor);
+                color: var(--diffBlob-addition-fgColor);
             }
 
             .diff-line.addition .diff-line-content {
-                color: #c9d1d9;
+                color: var(--diffBlob-addition-fgColor);
             }
 
+            /* Deletion (red) lines */
             .diff-line.deletion {
-                background-color: rgba(248, 81, 73, 0.15);
+                background-color: var(--diffBlob-deletionLine-bgColor);
             }
 
             .diff-line.deletion .diff-line-number {
-                background-color: rgba(248, 81, 73, 0.15);
+                background-color: var(--diffBlob-deletionNum-bgColor);
+                color: var(--diffBlob-deletion-fgColor);
             }
 
             .diff-line.deletion .diff-line-content {
-                color: #c9d1d9;
+                color: var(--diffBlob-deletion-fgColor);
             }
 
+            /* Context lines */
             .diff-line.context {
                 background-color: transparent;
+            }
+
+            .diff-line.context .diff-line-number {
+                background-color: transparent;
+            }
+
+            /* Word-level highlighting */
+            .diff-word-add {
+                background-color: var(--diffBlob-additionWord-bgColor);
+                border-radius: 2px;
+            }
+
+            .diff-word-del {
+                background-color: var(--diffBlob-deletionWord-bgColor);
+                border-radius: 2px;
             }
 
             .file-header-container {
@@ -110,7 +147,7 @@
             }
 
             .file-header-container:hover {
-                background-color: #161b22;
+                background-color: var(--bgColor-muted);
             }
 
             .counter-label {
@@ -169,28 +206,19 @@
             }
 
             .comment-form {
-                background-color: #161b22;
-                border: 1px solid #30363d;
+                background-color: var(--bgColor-muted);
+                border: 1px solid var(--borderColor-default);
                 border-radius: 6px;
                 margin: 8px 40px 8px 40px;
                 padding: 16px;
             }
 
             .comment-display {
-                background-color: #161b22;
-                border: 1px solid #30363d;
+                background-color: var(--bgColor-muted);
+                border: 1px solid var(--borderColor-default);
                 border-radius: 6px;
                 margin: 8px 40px 8px 40px;
                 padding: 12px 16px;
-            }
-
-            [data-color-mode="light"] .comment-display {
-                color: white;
-            }
-
-            [data-color-mode="light"] .comment-form {
-                background-color: #ffffff;
-                border: 1px solid #d0d7de;
             }
 
             .comment-form textarea {

@@ -34,6 +34,30 @@
         />
         <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
         <style>
+            /* GitHub Diff Colors - Light Mode */
+            :root {
+                --diffBlob-additionLine-bgColor: #dafbe1;
+                --diffBlob-additionNum-bgColor: #aceebb;
+                --diffBlob-additionWord-bgColor: #aceebb;
+                --diffBlob-deletionLine-bgColor: #ffebe9;
+                --diffBlob-deletionNum-bgColor: #ffcecb;
+                --diffBlob-deletionWord-bgColor: #ffcecb;
+                --diffBlob-addition-fgColor: #116329;
+                --diffBlob-deletion-fgColor: #82071e;
+            }
+
+            /* GitHub Diff Colors - Dark Mode */
+            [data-color-mode="dark"] {
+                --diffBlob-additionLine-bgColor: #2ea04326;
+                --diffBlob-additionNum-bgColor: #3fb9504d;
+                --diffBlob-additionWord-bgColor: #2ea04366;
+                --diffBlob-deletionLine-bgColor: #f851491a;
+                --diffBlob-deletionNum-bgColor: #f851494d;
+                --diffBlob-deletionWord-bgColor: #f8514966;
+                --diffBlob-addition-fgColor: #3fb950;
+                --diffBlob-deletion-fgColor: #f85149;
+            }
+
             body {
                 min-height: 100vh;
             }
@@ -68,12 +92,16 @@
             }
 
             .diff-line-number {
-                width: 40px;
+                width: 50px;
+                min-width: 50px;
                 padding: 0 10px;
                 text-align: right;
                 user-select: none;
+                -webkit-user-select: none;
+                -moz-user-select: none;
                 color: var(--fgColor-muted);
                 flex-shrink: 0;
+                border-right: 1px solid var(--borderColor-default);
             }
 
             .diff-line-content {
@@ -82,68 +110,52 @@
                 white-space: pre;
             }
 
+            /* Addition (green) lines */
             .diff-line.addition {
-                background-color: var(--bgColor-success-muted);
+                background-color: var(--diffBlob-additionLine-bgColor);
             }
 
             .diff-line.addition .diff-line-number {
-                background-color: var(--bgColor-success-muted);
+                background-color: var(--diffBlob-additionNum-bgColor);
+                color: var(--diffBlob-addition-fgColor);
             }
 
-            /* Light mode: use very dark colors for good contrast on colored backgrounds */
             .diff-line.addition .diff-line-content {
-                color: #116329 !important;
+                color: var(--diffBlob-addition-fgColor);
             }
 
-            .diff-line.addition .diff-line-content span[class^="hljs"],
-            .diff-line.addition .diff-line-content span[class*=" hljs"],
-            .diff-line.addition .diff-line-content span:not([class]),
-            .diff-line.addition .diff-line-content * {
-                color: inherit !important;
-            }
-
+            /* Deletion (red) lines */
             .diff-line.deletion {
-                background-color: var(--bgColor-danger-muted);
+                background-color: var(--diffBlob-deletionLine-bgColor);
             }
 
             .diff-line.deletion .diff-line-number {
-                background-color: var(--bgColor-danger-muted);
+                background-color: var(--diffBlob-deletionNum-bgColor);
+                color: var(--diffBlob-deletion-fgColor);
             }
 
             .diff-line.deletion .diff-line-content {
-                color: #6e011a !important;
+                color: var(--diffBlob-deletion-fgColor);
             }
 
-            .diff-line.deletion .diff-line-content span[class^="hljs"],
-            .diff-line.deletion .diff-line-content span[class*=" hljs"],
-            .diff-line.deletion .diff-line-content span:not([class]),
-            .diff-line.deletion .diff-line-content * {
-                color: inherit !important;
-            }
-
+            /* Context lines */
             .diff-line.context {
                 background-color: transparent;
             }
 
-            /* Dark mode overrides for diff text */
-            [data-color-mode="dark"] .diff-line.addition .diff-line-content {
-                color: #3fb950 !important;
+            .diff-line.context .diff-line-number {
+                background-color: transparent;
             }
 
-            [data-color-mode="dark"] .diff-line.addition .diff-line-content span[class^="hljs"],
-            [data-color-mode="dark"] .diff-line.addition .diff-line-content span[class*=" hljs"],
-            [data-color-mode="dark"] .diff-line.addition .diff-line-content * {
-                color: inherit !important;
+            /* Word-level highlighting */
+            .diff-word-add {
+                background-color: var(--diffBlob-additionWord-bgColor);
+                border-radius: 2px;
             }
 
-            [data-color-mode="dark"] .diff-line.deletion .diff-line-content {
-                color: #f85149 !important;
-            }
-
-            [data-color-mode="dark"] .diff-line.deletion .diff-line-content span[class^="hljs"],
-            [data-color-mode="dark"] .diff-line.deletion .diff-line-content span[class*=" hljs"],
-            [data-color-mode="dark"] .diff-line.deletion .diff-line-content * {
-                color: inherit !important;
+            .diff-word-del {
+                background-color: var(--diffBlob-deletionWord-bgColor);
+                border-radius: 2px;
             }
 
             .file-header-container {
