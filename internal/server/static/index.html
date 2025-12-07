@@ -158,6 +158,52 @@
                 border-radius: 2px;
             }
 
+            /* Improve contrast for syntax highlighting on diff backgrounds */
+            .diff-line.addition .hljs-string,
+            .diff-line.addition .hljs-title,
+            .diff-line.addition .hljs-section,
+            .diff-line.addition .hljs-attribute,
+            .diff-line.addition .hljs-literal,
+            .diff-line.addition .hljs-symbol,
+            .diff-line.addition .hljs-bullet,
+            .diff-line.addition .hljs-meta,
+            .diff-line.addition .hljs-code,
+            .diff-line.addition .hljs-keyword,
+            .diff-line.addition .hljs-selector-tag,
+            .diff-line.addition .hljs-subst,
+            .diff-line.addition .hljs-variable,
+            .diff-line.addition .hljs-template-tag,
+            .diff-line.addition .hljs-template-variable,
+            .diff-line.addition .hljs-type,
+            .diff-line.addition .hljs-built_in,
+            .diff-line.addition .hljs-quote,
+            .diff-line.addition .hljs-comment,
+            .diff-line.addition .hljs-regexp,
+            .diff-line.addition .hljs-link,
+            .diff-line.deletion .hljs-string,
+            .diff-line.deletion .hljs-title,
+            .diff-line.deletion .hljs-section,
+            .diff-line.deletion .hljs-attribute,
+            .diff-line.deletion .hljs-literal,
+            .diff-line.deletion .hljs-symbol,
+            .diff-line.deletion .hljs-bullet,
+            .diff-line.deletion .hljs-meta,
+            .diff-line.deletion .hljs-code,
+            .diff-line.deletion .hljs-keyword,
+            .diff-line.deletion .hljs-selector-tag,
+            .diff-line.deletion .hljs-subst,
+            .diff-line.deletion .hljs-variable,
+            .diff-line.deletion .hljs-template-tag,
+            .diff-line.deletion .hljs-template-variable,
+            .diff-line.deletion .hljs-type,
+            .diff-line.deletion .hljs-built_in,
+            .diff-line.deletion .hljs-quote,
+            .diff-line.deletion .hljs-comment,
+            .diff-line.deletion .hljs-regexp,
+            .diff-line.deletion .hljs-link {
+                filter: brightness(0.6);
+            }
+
             .file-header-container {
                 cursor: pointer;
                 user-select: none;
@@ -954,7 +1000,7 @@
 
                                         {/* Reply Form */}
                                         {activeCommentLine === `reply:${comment.id}` && (
-                                            <div className="comment-form mt-2 ml-4">
+                                            <div className="comment-form mt-2">
                                                 <textarea
                                                     className="form-control mb-2"
                                                     style={{ width: "100%" }}
