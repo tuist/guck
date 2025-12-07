@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.1] - 2025-12-07
+
+### 📦 Dependency Updates
+
+- **(deps)** Bump golang.org/x/crypto from 0.21.0 to 0.45.0 (#24) ([9d7a0a1](9d7a0a152c747b852752b94f667f459a373788c4))
+
 ## [1.7.0] - 2025-12-07
 
 ### 🚀 Features
