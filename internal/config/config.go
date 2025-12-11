@@ -10,6 +10,7 @@ import (
 
 type Config struct {
 	BaseBranch string `toml:"base_branch"`
+	ExportPath string `toml:"export_path"`
 }
 
 func Load() (*Config, error) {

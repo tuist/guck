@@ -727,8 +727,16 @@ func setConfig(c *cli.Context) error {
 		successColor.Print("✓ Set ")
 		infoColor.Print("base-branch")
 		successColor.Printf(" to '%s'\n", value)
+	case "export-path":
+		cfg.ExportPath = value
+		if err := cfg.Save(); err != nil {
+			return err
+		}
+		successColor.Print("✓ Set ")
+		infoColor.Print("export-path")
+		successColor.Printf(" to '%s'\n", value)
 	default:
-		return fmt.Errorf("unknown configuration key: %s", key)
+		return fmt.Errorf("unknown configuration key: %s (valid keys: base-branch, export-path)", key)
 	}
 
 	return nil
@@ -749,8 +757,14 @@ func getConfig(c *cli.Context) error {
 	switch key {
 	case "base-branch":
 		fmt.Println(cfg.BaseBranch)
+	case "export-path":
+		if cfg.ExportPath == "" {
+			fmt.Println("(default: ~/.local/state/guck/exports/)")
+		} else {
+			fmt.Println(cfg.ExportPath)
+		}
 	default:
-		return fmt.Errorf("unknown configuration key: %s", key)
+		return fmt.Errorf("unknown configuration key: %s (valid keys: base-branch, export-path)", key)
 	}
 
 	return nil
@@ -764,6 +778,13 @@ func showConfig(c *cli.Context) error {
 
 	infoColor.Print("base-branch = ")
 	successColor.Println(cfg.BaseBranch)
+
+	infoColor.Print("export-path = ")
+	if cfg.ExportPath == "" {
+		successColor.Println("(default: ~/.local/state/guck/exports/)")
+	} else {
+		successColor.Println(cfg.ExportPath)
+	}
 	return nil
 }
 

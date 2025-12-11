@@ -3,9 +3,13 @@ package state
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/tuist/guck/internal/config"
+	"github.com/tuist/guck/internal/export"
 )
 
 type Comment struct {
@@ -48,8 +52,9 @@ type ViewedState struct {
 }
 
 type Manager struct {
-	stateFile string
-	state     *ViewedState
+	stateFile      string
+	state          *ViewedState
+	exportBasePath string
 }
 
 func NewManager() (*Manager, error) {
@@ -82,9 +87,17 @@ func NewManager() (*Manager, error) {
 		}
 	}
 
+	// Load config to get custom export path
+	var exportBasePath string
+	cfg, err := config.Load()
+	if err == nil && cfg.ExportPath != "" {
+		exportBasePath = cfg.ExportPath
+	}
+
 	return &Manager{
-		stateFile: stateFile,
-		state:     state,
+		stateFile:      stateFile,
+		state:          state,
+		exportBasePath: exportBasePath,
 	}, nil
 }
 
@@ -354,7 +367,68 @@ func (m *Manager) save() error {
 		return fmt.Errorf("failed to write state file: %w", err)
 	}
 
+	if err := m.exportToJSON(); err != nil {
+		log.Printf("Warning: failed to export JSON: %v", err)
+	}
+
 	return nil
+}
+
+func (m *Manager) exportToJSON() error {
+	for repoPath, branches := range m.state.Repos {
+		if err := m.exportRepoToJSON(repoPath, branches); err != nil {
+			log.Printf("Warning: failed to export repo %s: %v", repoPath, err)
+		}
+	}
+	return nil
+}
+
+func (m *Manager) exportRepoToJSON(repoPath string, branches map[string]map[string]*RepoState) error {
+	exportPath, err := export.GetExportPathForRepoWithBase(repoPath, m.exportBasePath)
+	if err != nil {
+		return err
+	}
+
+	var comments []*export.Comment
+	var notes []*export.Note
+
+	for _, commits := range branches {
+		for _, repoState := range commits {
+			for _, c := range repoState.Comments {
+				comments = append(comments, &export.Comment{
+					ID:         c.ID,
+					FilePath:   c.FilePath,
+					LineNumber: c.LineNumber,
+					Text:       c.Text,
+					Timestamp:  c.Timestamp,
+					Branch:     c.Branch,
+					Commit:     c.Commit,
+					Resolved:   c.Resolved,
+					ResolvedBy: c.ResolvedBy,
+					ResolvedAt: c.ResolvedAt,
+				})
+			}
+			for _, n := range repoState.Notes {
+				notes = append(notes, &export.Note{
+					ID:          n.ID,
+					FilePath:    n.FilePath,
+					LineNumber:  n.LineNumber,
+					Text:        n.Text,
+					Timestamp:   n.Timestamp,
+					Branch:      n.Branch,
+					Commit:      n.Commit,
+					Author:      n.Author,
+					Type:        n.Type,
+					Metadata:    n.Metadata,
+					Dismissed:   n.Dismissed,
+					DismissedBy: n.DismissedBy,
+					DismissedAt: n.DismissedAt,
+				})
+			}
+		}
+	}
+
+	return export.Export(repoPath, comments, notes, exportPath)
 }
 
 func getStateDir() (string, error) {

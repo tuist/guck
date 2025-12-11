@@ -17,6 +17,7 @@ A Git diff review tool with a web interface, inspired by GitHub's pull request U
 - ⚡ **Built with Go** - Fast, simple, and efficient
 - 🔌 **Automatic port allocation** - Each repository gets its own port
 - 🤖 **MCP Server Integration** - Allows LLMs like Claude to query and resolve review comments
+- 📄 **JSON Export** - Automatically exports comments/notes to a JSON file for easy agent access
 
 ## Quick Start
 
@@ -89,6 +90,7 @@ guck daemon stop-all   # Stop all daemons
 
 # Configuration
 guck config set base-branch develop
+guck config set export-path /custom/path/exports  # Custom JSON export folder
 guck config show
 ```
 

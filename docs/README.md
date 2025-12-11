@@ -105,6 +105,12 @@ guck config set base-branch develop
 # Get current base branch
 guck config get base-branch
 
+# Set custom export folder for JSON files (default: ~/.local/state/guck/exports/)
+guck config set export-path /custom/path/exports
+
+# Get current export path
+guck config get export-path
+
 # Show all configuration
 guck config show
 ```
@@ -114,7 +120,33 @@ guck config show
 Guck stores its data in XDG-compliant directories:
 
 - **State**: `~/.local/state/guck/` - Port mappings, daemon PIDs, viewed files, comments
-- **Config**: `~/.config/guck/` - User configuration (base branch, etc.)
+- **Config**: `~/.config/guck/` - User configuration (base branch, export path, etc.)
+
+### JSON Export for Agents
+
+Guck automatically exports comments and notes to JSON files whenever they change. Each repository gets its own export file, organized by a hash of the repo path.
+
+**Default Location**: `~/.local/state/guck/exports/<repo-hash>/comments_export.json`
+
+**Custom Location**: Configure with `guck config set export-path /your/path`, then files will be at `<export-path>/<repo-hash>/comments_export.json`
+
+The export file contains:
+```json
+{
+  "generated_at": "2025-12-11T13:00:00Z",
+  "repo_path": "/path/to/your/repo",
+  "comments": [...],
+  "notes": [...],
+  "summary": {
+    "total_comments": 5,
+    "unresolved_comments": 2,
+    "total_notes": 3,
+    "active_notes": 1
+  }
+}
+```
+
+This is useful for agents that prefer file-based access over MCP protocol, or for integrating with tools that can watch file changes. Each repo's comments are isolated in their own file to prevent unbounded growth.
 
 ## MCP Server Integration
 
@@ -461,6 +493,7 @@ go test ./...
 ├── internal/
 │   ├── config/          # Configuration management (XDG-compliant)
 │   ├── daemon/          # Daemon process management and port allocation
+│   ├── export/          # JSON export of comments/notes for agent access
 │   ├── git/             # Git operations and diff parsing (using go-git)
 │   ├── mcp/             # MCP server implementation
 │   │   ├── mcp.go      # Legacy tool functions (list_comments, resolve_comment)
@@ -468,7 +501,7 @@ go test ./...
 │   ├── server/          # HTTP server and REST API
 │   │   ├── server.go   # Server logic and handlers
 │   │   └── static/     # Web UI (HTML/CSS/React)
-│   └── state/           # State persistence (comments, viewed files)
+│   └── state/           # State persistence (comments, viewed files, auto-export)
 ├── docs/                # Documentation
 └── .github/workflows/   # CI/CD for releases
 ```
