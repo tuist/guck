@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"sync"
@@ -180,28 +181,29 @@ func (s *AppState) diffHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Populate image URLs for image files
-		if git.IsImagePath(file.Path) {
+		// For renames, check both source and destination paths since extension might change
+		basePath := file.Path
+		if file.FromPath != "" {
+			basePath = file.FromPath
+		}
+		headPath := file.Path
+		if file.ToPath != "" {
+			headPath = file.ToPath
+		}
+
+		baseIsImage := git.IsImagePath(basePath)
+		headIsImage := git.IsImagePath(headPath)
+
+		if baseIsImage || headIsImage {
 			fileDiff.IsImage = true
 
-			// Determine base path (for renames, use FromPath; otherwise use Path)
-			basePath := file.Path
-			if file.FromPath != "" {
-				basePath = file.FromPath
-			}
-
-			// Determine head path (for renames, use ToPath; otherwise use Path)
-			headPath := file.Path
-			if file.ToPath != "" {
-				headPath = file.ToPath
-			}
-
-			// Base URL (not for added files)
-			if file.Status != "added" {
+			// Base URL (if source is an image and not a new file)
+			if baseIsImage && file.Status != "added" {
 				fileDiff.ImageBaseURL = buildBlobURL("commit", diffResult.BaseCommit, basePath)
 			}
 
-			// Head URL (not for deleted files)
-			if file.Status != "deleted" {
+			// Head URL (if destination is an image and not deleted)
+			if headIsImage && file.Status != "deleted" {
 				fileDiff.ImageHeadURL = buildBlobURL("commit", diffResult.HeadCommit, headPath)
 			}
 		}
@@ -243,7 +245,9 @@ func (s *AppState) diffHandler(w http.ResponseWriter, r *http.Request) {
 						fileDiff.ImageHeadURL = buildBlobURL("index", "", file.Path)
 					}
 				} else {
-					// Unstaged: base is index (or HEAD), head is worktree
+					// Unstaged: base is index, head is worktree
+					// Note: For untracked files (status="added"), there's no base URL because
+					// the file doesn't exist in the index yet - it only exists in the worktree.
 					if file.Status != "added" {
 						fileDiff.ImageBaseURL = buildBlobURL("index", "", file.Path)
 					}
@@ -303,9 +307,18 @@ func (s *AppState) blobHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validate ref parameter to prevent injection
+	if source == "commit" {
+		if err := git.ValidateGitRef(ref); err != nil {
+			http.Error(w, "invalid ref parameter", http.StatusBadRequest)
+			return
+		}
+	}
+
 	gitRepo, err := git.Open(".")
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Printf("failed to open git repo: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -320,7 +333,8 @@ func (s *AppState) blobHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		log.Printf("blob error for path %s: %v", path, err)
+		http.Error(w, "file not found", http.StatusNotFound)
 		return
 	}
 

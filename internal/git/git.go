@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/go-git/go-git/v5"
@@ -272,11 +273,14 @@ func (r *Repo) GetUncommittedChanges() ([]FileInfo, error) {
 		worktreeStatus := line[1]
 		filePath := strings.TrimSpace(line[3:])
 
+		// Handle quoted filenames (git quotes paths with special characters)
+		filePath = unquoteFilename(filePath)
+
 		// Handle renamed files (format: "R  old -> new")
 		if strings.Contains(filePath, " -> ") {
 			parts := strings.Split(filePath, " -> ")
 			if len(parts) == 2 {
-				filePath = parts[1] // Use the new path
+				filePath = unquoteFilename(parts[1]) // Use the new path
 			}
 		}
 
@@ -478,4 +482,19 @@ func generateUnifiedDiff(filePath, oldContent, newContent string, status string)
 	}
 
 	return patch.String()
+}
+
+// unquoteFilename handles quoted filenames from git status --porcelain.
+// Git quotes paths containing special characters (spaces, tabs, quotes, etc.)
+// using C-style escape sequences.
+func unquoteFilename(s string) string {
+	if len(s) < 2 || s[0] != '"' || s[len(s)-1] != '"' {
+		return s
+	}
+	// Use strconv.Unquote for C-style escape sequences
+	unquoted, err := strconv.Unquote(s)
+	if err != nil {
+		return s // Return original if unquoting fails
+	}
+	return unquoted
 }

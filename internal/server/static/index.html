@@ -466,9 +466,9 @@
             }
 
             .image-diff-mode-toggle button.active {
-                background-color: #0969da;
-                color: white;
-                border-color: #0969da;
+                background-color: var(--bgColor-accent-emphasis, #0969da);
+                color: var(--fgColor-onEmphasis, white);
+                border-color: var(--bgColor-accent-emphasis, #0969da);
             }
 
             .image-diff-2up {
@@ -634,7 +634,7 @@
                 top: 0;
                 bottom: 0;
                 width: 3px;
-                background-color: #fff;
+                background-color: var(--bgColor-default, #fff);
                 box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
                 transform: translateX(-50%);
                 z-index: 10;
@@ -647,8 +647,8 @@
                 top: 50%;
                 left: 50%;
                 transform: translate(-50%, -50%);
-                background-color: #fff;
-                color: #666;
+                background-color: var(--bgColor-default, #fff);
+                color: var(--fgColor-muted, #666);
                 font-size: 10px;
                 padding: 8px 6px;
                 border-radius: 4px;
@@ -660,9 +660,26 @@
             }
 
             .swipe-divider:hover::before,
-            .swipe-divider.dragging::before {
-                background-color: #0969da;
-                color: #fff;
+            .swipe-divider.dragging::before,
+            .swipe-divider:focus::before {
+                background-color: var(--bgColor-accent-emphasis, #0969da);
+                color: var(--fgColor-onEmphasis, #fff);
+            }
+
+            .swipe-divider:focus {
+                outline: none;
+            }
+
+            .swipe-divider:focus::after {
+                content: '';
+                position: absolute;
+                top: -2px;
+                bottom: -2px;
+                left: -4px;
+                right: -4px;
+                border: 2px solid var(--bgColor-accent-emphasis, #0969da);
+                border-radius: 4px;
+                pointer-events: none;
             }
 
             .swipe-dimensions {
@@ -1599,17 +1616,22 @@
 
                     // Render Swipe mode - custom implementation with both images clipped
                     const swipeContainerRef = React.useRef(null);
+                    const cachedRectRef = React.useRef(null);
                     const [isDragging, setIsDragging] = React.useState(false);
 
                     const handleDragStart = (e) => {
                         e.preventDefault();
+                        // Cache bounding rect on drag start for performance
+                        if (swipeContainerRef.current) {
+                            cachedRectRef.current = swipeContainerRef.current.getBoundingClientRect();
+                        }
                         setIsDragging(true);
                     };
 
                     const handleDragMove = React.useCallback((e) => {
-                        if (!isDragging || !swipeContainerRef.current) return;
+                        if (!isDragging || !cachedRectRef.current) return;
 
-                        const rect = swipeContainerRef.current.getBoundingClientRect();
+                        const rect = cachedRectRef.current;
                         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
                         const x = clientX - rect.left;
                         const percentage = Math.max(0, Math.min(100, (x / rect.width) * 100));
@@ -1618,6 +1640,25 @@
 
                     const handleDragEnd = React.useCallback(() => {
                         setIsDragging(false);
+                        cachedRectRef.current = null;
+                    }, []);
+
+                    // Keyboard handler for accessibility
+                    const handleKeyDown = React.useCallback((e) => {
+                        const step = e.shiftKey ? 10 : 1; // Larger steps with shift
+                        if (e.key === 'ArrowLeft') {
+                            e.preventDefault();
+                            setSliderValue(v => Math.max(0, v - step));
+                        } else if (e.key === 'ArrowRight') {
+                            e.preventDefault();
+                            setSliderValue(v => Math.min(100, v + step));
+                        } else if (e.key === 'Home') {
+                            e.preventDefault();
+                            setSliderValue(0);
+                        } else if (e.key === 'End') {
+                            e.preventDefault();
+                            setSliderValue(100);
+                        }
                     }, []);
 
                     // Add/remove global event listeners for drag
@@ -1674,6 +1715,13 @@
                                     <div
                                         className={`swipe-divider ${isDragging ? 'dragging' : ''}`}
                                         style={{ left: `${sliderValue}%` }}
+                                        tabIndex={0}
+                                        role="slider"
+                                        aria-label="Image comparison slider"
+                                        aria-valuemin={0}
+                                        aria-valuemax={100}
+                                        aria-valuenow={Math.round(sliderValue)}
+                                        onKeyDown={handleKeyDown}
                                     />
                                 </div>
                                 {(baseDims || headDims) && (
@@ -1879,6 +1927,7 @@
                                                 );
                                             })
                                             .map((line, index) => {
+                                                if (line.length === 0) return null;
                                                 const prefix = line[0];
                                                 let lineClass = "context";
                                                 if (prefix === "+") lineClass = "addition";

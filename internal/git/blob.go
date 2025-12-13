@@ -6,11 +6,33 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
 // LFS pointer signature
 const lfsPointerSignature = "version https://git-lfs.github.com/spec/v1"
+
+// validRefRegex matches valid git reference patterns
+var validRefRegex = regexp.MustCompile(`^[a-zA-Z0-9._\-/]+$`)
+
+// ValidateGitRef validates that a git reference is safe to use
+func ValidateGitRef(ref string) error {
+	if ref == "" {
+		return fmt.Errorf("ref cannot be empty")
+	}
+	if len(ref) > 256 {
+		return fmt.Errorf("ref too long")
+	}
+	if !validRefRegex.MatchString(ref) {
+		return fmt.Errorf("ref contains invalid characters")
+	}
+	// Reject ".." to prevent traversal
+	if strings.Contains(ref, "..") {
+		return fmt.Errorf("ref cannot contain '..'")
+	}
+	return nil
+}
 
 // ReadBlobCommit reads blob content from a specific commit using git show
 func (r *Repo) ReadBlobCommit(ref, path string) ([]byte, error) {
@@ -84,7 +106,8 @@ func (r *Repo) ReadBlobWorktree(path string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get absolute path: %w", err)
 	}
-	if !strings.HasPrefix(absPath, repoPath) {
+	rel, err := filepath.Rel(repoPath, absPath)
+	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
 		return nil, fmt.Errorf("path escapes repository: %s", path)
 	}
 
