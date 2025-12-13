@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/go-git/go-git/v5"
@@ -27,11 +28,20 @@ const (
 
 type FileInfo struct {
 	Path          string        `json:"path"`
+	FromPath      string        `json:"from_path,omitempty"` // Original path for renames/deletes
+	ToPath        string        `json:"to_path,omitempty"`   // New path for renames/adds
 	Status        string        `json:"status"`
 	Additions     int           `json:"additions"`
 	Deletions     int           `json:"deletions"`
 	Patch         string        `json:"patch"`
 	StagingStatus StagingStatus `json:"staging_status,omitempty"`
+}
+
+// DiffResult contains the result of a diff operation including commit references
+type DiffResult struct {
+	BaseCommit string     // The merge-base commit hash used for comparison
+	HeadCommit string     // The HEAD commit hash
+	Files      []FileInfo // Changed files
 }
 
 func Open(path string) (*Repo, error) {
@@ -96,7 +106,7 @@ func (r *Repo) GetRemoteURL() (string, error) {
 	return remote.Config().URLs[0], nil
 }
 
-func (r *Repo) GetDiffFiles(baseBranch string) ([]FileInfo, error) {
+func (r *Repo) GetDiffFiles(baseBranch string) (DiffResult, error) {
 	// Try to get the remote tracking branch first (origin/baseBranch)
 	// This ensures we compare against the remote version even if local is outdated
 	remoteBranchRef, err := r.repo.Reference(plumbing.NewRemoteReferenceName("origin", baseBranch), true)
@@ -106,62 +116,65 @@ func (r *Repo) GetDiffFiles(baseBranch string) ([]FileInfo, error) {
 		// Remote tracking branch exists, use it
 		baseCommit, err = r.repo.CommitObject(remoteBranchRef.Hash())
 		if err != nil {
-			return nil, fmt.Errorf("failed to get remote base commit: %w", err)
+			return DiffResult{}, fmt.Errorf("failed to get remote base commit: %w", err)
 		}
 	} else {
 		// Fall back to local branch if remote tracking branch doesn't exist
 		baseBranchRef, err := r.repo.Reference(plumbing.NewBranchReferenceName(baseBranch), true)
 		if err != nil {
-			return nil, fmt.Errorf("failed to find branch %s: %w", baseBranch, err)
+			return DiffResult{}, fmt.Errorf("failed to find branch %s: %w", baseBranch, err)
 		}
 
 		baseCommit, err = r.repo.CommitObject(baseBranchRef.Hash())
 		if err != nil {
-			return nil, fmt.Errorf("failed to get base commit: %w", err)
+			return DiffResult{}, fmt.Errorf("failed to get base commit: %w", err)
 		}
 	}
 
 	// Get the current HEAD commit
 	head, err := r.repo.Head()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get HEAD: %w", err)
+		return DiffResult{}, fmt.Errorf("failed to get HEAD: %w", err)
 	}
 
 	headCommit, err := r.repo.CommitObject(head.Hash())
 	if err != nil {
-		return nil, fmt.Errorf("failed to get HEAD commit: %w", err)
+		return DiffResult{}, fmt.Errorf("failed to get HEAD commit: %w", err)
 	}
 
 	// Find the merge base between base branch and HEAD
 	mergeBase, err := headCommit.MergeBase(baseCommit)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find merge base: %w", err)
+		return DiffResult{}, fmt.Errorf("failed to find merge base: %w", err)
 	}
 
 	// Use the merge base as the comparison point
 	var baseTree *object.Tree
+	var baseCommitHash string
 	if len(mergeBase) > 0 {
 		baseTree, err = mergeBase[0].Tree()
 		if err != nil {
-			return nil, fmt.Errorf("failed to get merge base tree: %w", err)
+			return DiffResult{}, fmt.Errorf("failed to get merge base tree: %w", err)
 		}
+		baseCommitHash = mergeBase[0].Hash.String()
 	} else {
 		// Fallback to base branch if no merge base found
 		baseTree, err = baseCommit.Tree()
 		if err != nil {
-			return nil, fmt.Errorf("failed to get base tree: %w", err)
+			return DiffResult{}, fmt.Errorf("failed to get base tree: %w", err)
 		}
+		baseCommitHash = baseCommit.Hash.String()
 	}
 
 	headTree, err := headCommit.Tree()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get HEAD tree: %w", err)
+		return DiffResult{}, fmt.Errorf("failed to get HEAD tree: %w", err)
 	}
 
 	// Get the diff
 	changes, err := baseTree.Diff(headTree)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create diff: %w", err)
+		return DiffResult{}, fmt.Errorf("failed to create diff: %w", err)
 	}
 
 	files := []FileInfo{}
@@ -172,18 +185,23 @@ func (r *Repo) GetDiffFiles(baseBranch string) ([]FileInfo, error) {
 			continue
 		}
 
-		filePath := change.To.Name
+		// Set FromPath and ToPath for proper rename/add/delete tracking
+		fromPath := change.From.Name
+		toPath := change.To.Name
+
+		// Path is the "canonical" path for display (prefer ToPath, fallback to FromPath)
+		filePath := toPath
 		if filePath == "" {
-			filePath = change.From.Name
+			filePath = fromPath
 		}
 
 		status := "modified"
 		switch {
-		case change.From.Name == "":
+		case fromPath == "":
 			status = "added"
-		case change.To.Name == "":
+		case toPath == "":
 			status = "deleted"
-		case change.From.Name != change.To.Name:
+		case fromPath != toPath:
 			status = "renamed"
 		}
 
@@ -206,6 +224,8 @@ func (r *Repo) GetDiffFiles(baseBranch string) ([]FileInfo, error) {
 
 		files = append(files, FileInfo{
 			Path:      filePath,
+			FromPath:  fromPath,
+			ToPath:    toPath,
 			Status:    status,
 			Additions: additions,
 			Deletions: deletions,
@@ -213,47 +233,77 @@ func (r *Repo) GetDiffFiles(baseBranch string) ([]FileInfo, error) {
 		})
 	}
 
-	return files, nil
+	return DiffResult{
+		BaseCommit: baseCommitHash,
+		HeadCommit: headCommit.Hash.String(),
+		Files:      files,
+	}, nil
 }
 
 // GetUncommittedChanges returns all uncommitted changes (both staged and unstaged)
+// Uses native git status to properly handle LFS-tracked files
 func (r *Repo) GetUncommittedChanges() ([]FileInfo, error) {
 	repoPath, err := r.RepoPath()
 	if err != nil {
 		return nil, err
 	}
 
-	wt, err := r.repo.Worktree()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get worktree: %w", err)
-	}
+	// Use native git status --porcelain to properly handle LFS files
+	// go-git's Status() compares raw content (LFS pointer vs smudged content)
+	// which incorrectly reports LFS files as having changes
+	cmd := exec.Command("git", "status", "--porcelain")
+	cmd.Dir = repoPath
 
-	status, err := wt.Status()
+	output, err := cmd.Output()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get worktree status: %w", err)
+		return nil, fmt.Errorf("failed to get git status: %w", err)
 	}
 
 	files := []FileInfo{}
 
-	for filePath, fileStatus := range status {
-		// Check if file has staged changes (index vs HEAD)
-		if fileStatus.Staging != git.Unmodified && fileStatus.Staging != git.Untracked {
-			fileInfo, err := r.getFileInfoWithGitDiff(repoPath, filePath, fileStatus.Staging, StagingStatusStaged)
+	lines := strings.Split(string(output), "\n")
+	for _, line := range lines {
+		if len(line) < 3 {
+			continue
+		}
+
+		// Porcelain format: XY filename
+		// X = index status, Y = worktree status
+		indexStatus := line[0]
+		worktreeStatus := line[1]
+		filePath := strings.TrimSpace(line[3:])
+
+		// Handle quoted filenames (git quotes paths with special characters)
+		filePath = unquoteFilename(filePath)
+
+		// Handle renamed files (format: "R  old -> new")
+		if strings.Contains(filePath, " -> ") {
+			parts := strings.Split(filePath, " -> ")
+			if len(parts) == 2 {
+				filePath = unquoteFilename(parts[1]) // Use the new path
+			}
+		}
+
+		// Check for staged changes (index vs HEAD)
+		if indexStatus != ' ' && indexStatus != '?' {
+			statusCode := porcelainToStatusCode(indexStatus)
+			fileInfo, err := r.getFileInfoWithGitDiff(repoPath, filePath, statusCode, StagingStatusStaged)
 			if err == nil {
 				files = append(files, fileInfo)
 			}
 		}
 
-		// Check if file has unstaged changes (worktree vs index)
-		if fileStatus.Worktree != git.Unmodified && fileStatus.Worktree != git.Untracked {
-			fileInfo, err := r.getFileInfoWithGitDiff(repoPath, filePath, fileStatus.Worktree, StagingStatusUnstaged)
+		// Check for unstaged changes (worktree vs index)
+		if worktreeStatus != ' ' && worktreeStatus != '?' {
+			statusCode := porcelainToStatusCode(worktreeStatus)
+			fileInfo, err := r.getFileInfoWithGitDiff(repoPath, filePath, statusCode, StagingStatusUnstaged)
 			if err == nil {
 				files = append(files, fileInfo)
 			}
 		}
 
-		// Handle untracked files as unstaged additions
-		if fileStatus.Worktree == git.Untracked {
+		// Handle untracked files
+		if indexStatus == '?' && worktreeStatus == '?' {
 			content, err := r.readWorktreeFile(filePath)
 			if err != nil {
 				continue
@@ -280,6 +330,24 @@ func (r *Repo) GetUncommittedChanges() ([]FileInfo, error) {
 	}
 
 	return files, nil
+}
+
+// porcelainToStatusCode converts git status porcelain format to go-git StatusCode
+func porcelainToStatusCode(c byte) git.StatusCode {
+	switch c {
+	case 'M':
+		return git.Modified
+	case 'A':
+		return git.Added
+	case 'D':
+		return git.Deleted
+	case 'R':
+		return git.Renamed
+	case 'C':
+		return git.Copied
+	default:
+		return git.Modified
+	}
 }
 
 // getFileInfoWithGitDiff uses git diff command for proper unified diff output
@@ -414,4 +482,19 @@ func generateUnifiedDiff(filePath, oldContent, newContent string, status string)
 	}
 
 	return patch.String()
+}
+
+// unquoteFilename handles quoted filenames from git status --porcelain.
+// Git quotes paths containing special characters (spaces, tabs, quotes, etc.)
+// using C-style escape sequences.
+func unquoteFilename(s string) string {
+	if len(s) < 2 || s[0] != '"' || s[len(s)-1] != '"' {
+		return s
+	}
+	// Use strconv.Unquote for C-style escape sequences
+	unquoted, err := strconv.Unquote(s)
+	if err != nil {
+		return s // Return original if unquoting fails
+	}
+	return unquoted
 }

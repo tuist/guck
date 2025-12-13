@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	gogit "github.com/go-git/go-git/v5"
 )
 
 // setupTestRepo creates a temporary git repository for testing
@@ -470,5 +472,87 @@ func TestGenerateUnifiedDiff(t *testing.T) {
 				t.Error("Patch should contain 'diff --git' header")
 			}
 		})
+	}
+}
+
+func TestPorcelainToStatusCode(t *testing.T) {
+	tests := []struct {
+		input byte
+		want  gogit.StatusCode
+	}{
+		{'M', gogit.Modified},
+		{'A', gogit.Added},
+		{'D', gogit.Deleted},
+		{'R', gogit.Renamed},
+		{'C', gogit.Copied},
+		{'?', gogit.Modified}, // Unknown defaults to Modified
+		{' ', gogit.Modified}, // Space defaults to Modified
+	}
+
+	for _, tt := range tests {
+		t.Run(string(tt.input), func(t *testing.T) {
+			got := porcelainToStatusCode(tt.input)
+			if got != tt.want {
+				t.Errorf("porcelainToStatusCode(%q) = %v, want %v", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestDiffResultContainsCommitHashes(t *testing.T) {
+	tempDir := setupTestRepo(t)
+
+	// Get the current branch name (could be main or master)
+	repo, err := Open(tempDir)
+	if err != nil {
+		t.Fatalf("Failed to open repo: %v", err)
+	}
+
+	baseBranch, err := repo.CurrentBranch()
+	if err != nil {
+		t.Fatalf("Failed to get current branch: %v", err)
+	}
+
+	// Create a feature branch with some changes
+	runGit(t, tempDir, "checkout", "-b", "feature")
+
+	// Add a new file on the feature branch
+	newFile := filepath.Join(tempDir, "feature.txt")
+	if err := os.WriteFile(newFile, []byte("feature content\n"), 0644); err != nil {
+		t.Fatalf("Failed to create file: %v", err)
+	}
+	runGit(t, tempDir, "add", "feature.txt")
+	runGit(t, tempDir, "commit", "-m", "Add feature file")
+
+	result, err := repo.GetDiffFiles(baseBranch)
+	if err != nil {
+		t.Fatalf("GetDiffFiles failed: %v", err)
+	}
+
+	// Check that commit hashes are populated
+	if result.BaseCommit == "" {
+		t.Error("BaseCommit should not be empty")
+	}
+
+	if result.HeadCommit == "" {
+		t.Error("HeadCommit should not be empty")
+	}
+
+	// Commit hashes should be 40 characters
+	if len(result.BaseCommit) != 40 {
+		t.Errorf("BaseCommit should be 40 characters, got %d: %s", len(result.BaseCommit), result.BaseCommit)
+	}
+
+	if len(result.HeadCommit) != 40 {
+		t.Errorf("HeadCommit should be 40 characters, got %d: %s", len(result.HeadCommit), result.HeadCommit)
+	}
+
+	// Should have one file in the diff
+	if len(result.Files) != 1 {
+		t.Errorf("Expected 1 file in diff, got %d", len(result.Files))
+	}
+
+	if len(result.Files) > 0 && result.Files[0].Path != "feature.txt" {
+		t.Errorf("Expected file path 'feature.txt', got '%s'", result.Files[0].Path)
 	}
 }

@@ -443,6 +443,477 @@
                 border-bottom-left-radius: 12px;
                 border-bottom-right-radius: 12px;
             }
+
+            /* Image Diff Styles */
+            .image-diff-container {
+                padding: 24px;
+                background-color: var(--bgColor-muted);
+            }
+
+            .image-diff-mode-toggle {
+                display: flex;
+                gap: 8px;
+                margin-bottom: 16px;
+            }
+
+            .image-diff-mode-toggle button {
+                padding: 4px 12px;
+                border: 1px solid var(--borderColor-default);
+                border-radius: 6px;
+                background-color: var(--bgColor-default);
+                cursor: pointer;
+                font-size: 12px;
+            }
+
+            .image-diff-mode-toggle button.active {
+                background-color: var(--bgColor-accent-emphasis, #0969da);
+                color: var(--fgColor-onEmphasis, white);
+                border-color: var(--bgColor-accent-emphasis, #0969da);
+            }
+
+            .image-diff-2up {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 24px;
+            }
+
+            .image-diff-single {
+                display: flex;
+                justify-content: center;
+            }
+
+            .image-frame {
+                text-align: center;
+            }
+
+            .image-frame-inner {
+                display: inline-block;
+                background-color: var(--bgColor-default);
+                border: 2px solid var(--borderColor-default);
+                border-radius: 6px;
+                padding: 16px;
+                /* Checkerboard pattern for transparency */
+                background-image:
+                    linear-gradient(45deg, #f0f0f0 25%, transparent 25%),
+                    linear-gradient(-45deg, #f0f0f0 25%, transparent 25%),
+                    linear-gradient(45deg, transparent 75%, #f0f0f0 75%),
+                    linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
+                background-size: 16px 16px;
+                background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+                background-color: #fff;
+            }
+
+            [data-color-mode="dark"] .image-frame-inner {
+                background-image:
+                    linear-gradient(45deg, #2d2d2d 25%, transparent 25%),
+                    linear-gradient(-45deg, #2d2d2d 25%, transparent 25%),
+                    linear-gradient(45deg, transparent 75%, #2d2d2d 75%),
+                    linear-gradient(-45deg, transparent 75%, #2d2d2d 75%);
+                background-color: #1c1c1c;
+            }
+
+            .image-frame.deletion .image-frame-inner {
+                border-color: var(--borderColor-danger-emphasis, #cf222e);
+            }
+
+            .image-frame.addition .image-frame-inner {
+                border-color: var(--borderColor-success-emphasis, #1a7f37);
+            }
+
+            .image-frame img {
+                max-width: 100%;
+                max-height: 500px;
+                object-fit: contain;
+                display: block;
+            }
+
+            .image-label {
+                font-size: 12px;
+                font-weight: 600;
+                color: var(--fgColor-muted);
+                margin-bottom: 8px;
+                text-transform: uppercase;
+            }
+
+            .image-meta {
+                font-size: 13px;
+                color: var(--fgColor-muted);
+                margin-top: 12px;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+            }
+
+            .image-meta-deletion {
+                color: var(--fgColor-danger, #cf222e);
+            }
+
+            .image-meta-addition {
+                color: var(--fgColor-success, #1a7f37);
+            }
+
+            .image-error {
+                padding: 24px;
+                text-align: center;
+                color: var(--fgColor-danger);
+                background-color: var(--bgColor-danger-muted);
+                border-radius: 6px;
+            }
+
+            .image-open-link {
+                font-size: 11px;
+                margin-top: 8px;
+            }
+
+            .dimension-change {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                padding: 8px 12px;
+                margin-bottom: 16px;
+                background-color: var(--bgColor-attention-muted);
+                border: 1px solid var(--borderColor-attention-muted);
+                border-radius: 6px;
+                font-size: 12px;
+            }
+
+            /* Swipe Mode Styles - custom implementation */
+            .swipe-container {
+                border: 1px solid var(--borderColor-default);
+                border-radius: 8px;
+                overflow: hidden;
+                background-color: var(--bgColor-default);
+            }
+
+            .swipe-images {
+                position: relative;
+                width: 100%;
+                min-height: 200px;
+                /* Checkerboard background for transparency */
+                background-image:
+                    linear-gradient(45deg, #e0e0e0 25%, transparent 25%),
+                    linear-gradient(-45deg, #e0e0e0 25%, transparent 25%),
+                    linear-gradient(45deg, transparent 75%, #e0e0e0 75%),
+                    linear-gradient(-45deg, transparent 75%, #e0e0e0 75%);
+                background-size: 16px 16px;
+                background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+                background-color: #f5f5f5;
+                user-select: none;
+            }
+
+            [data-color-mode="dark"] .swipe-images {
+                background-image:
+                    linear-gradient(45deg, #2d2d2d 25%, transparent 25%),
+                    linear-gradient(-45deg, #2d2d2d 25%, transparent 25%),
+                    linear-gradient(45deg, transparent 75%, #2d2d2d 75%),
+                    linear-gradient(-45deg, transparent 75%, #2d2d2d 75%);
+                background-color: #1c1c1c;
+            }
+
+            .swipe-img {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+                object-position: center;
+            }
+
+            /* Make the first image (before) set the container height */
+            .swipe-before {
+                position: relative;
+                max-height: 500px;
+            }
+
+            .swipe-after {
+                max-height: 500px;
+            }
+
+            .swipe-divider {
+                position: absolute;
+                top: 0;
+                bottom: 0;
+                width: 3px;
+                background-color: var(--bgColor-default, #fff);
+                box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+                transform: translateX(-50%);
+                z-index: 10;
+                cursor: ew-resize;
+            }
+
+            .swipe-divider::before {
+                content: '◀ ▶';
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background-color: var(--bgColor-default, #fff);
+                color: var(--fgColor-muted, #666);
+                font-size: 10px;
+                padding: 8px 6px;
+                border-radius: 4px;
+                box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+                white-space: nowrap;
+                letter-spacing: 2px;
+                cursor: ew-resize;
+                user-select: none;
+            }
+
+            .swipe-divider:hover::before,
+            .swipe-divider.dragging::before,
+            .swipe-divider:focus::before {
+                background-color: var(--bgColor-accent-emphasis, #0969da);
+                color: var(--fgColor-onEmphasis, #fff);
+            }
+
+            .swipe-divider:focus {
+                outline: none;
+            }
+
+            .swipe-divider:focus::after {
+                content: '';
+                position: absolute;
+                top: -2px;
+                bottom: -2px;
+                left: -4px;
+                right: -4px;
+                border: 2px solid var(--bgColor-accent-emphasis, #0969da);
+                border-radius: 4px;
+                pointer-events: none;
+            }
+
+            .swipe-dimensions {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 12px 16px;
+                font-size: 13px;
+                background-color: var(--bgColor-muted);
+                border-top: 1px solid var(--borderColor-default);
+            }
+
+            /* Pointer diff toggle for LFS images */
+            .pointer-diff-toggle {
+                margin-top: 16px;
+                font-size: 12px;
+            }
+
+            .pointer-diff-toggle summary {
+                cursor: pointer;
+                color: var(--fgColor-muted);
+            }
+
+            .pointer-diff-toggle summary:hover {
+                color: var(--fgColor-default);
+            }
+
+            /* Onion Skin Mode Styles */
+            .onion-container {
+                border: 1px solid var(--borderColor-default);
+                border-radius: 8px;
+                overflow: hidden;
+                background-color: var(--bgColor-default);
+            }
+
+            .onion-images {
+                position: relative;
+                width: 100%;
+                min-height: 200px;
+                /* Checkerboard background for transparency */
+                background-image:
+                    linear-gradient(45deg, #e0e0e0 25%, transparent 25%),
+                    linear-gradient(-45deg, #e0e0e0 25%, transparent 25%),
+                    linear-gradient(45deg, transparent 75%, #e0e0e0 75%),
+                    linear-gradient(-45deg, transparent 75%, #e0e0e0 75%);
+                background-size: 16px 16px;
+                background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+                background-color: #f5f5f5;
+            }
+
+            [data-color-mode="dark"] .onion-images {
+                background-image:
+                    linear-gradient(45deg, #2d2d2d 25%, transparent 25%),
+                    linear-gradient(-45deg, #2d2d2d 25%, transparent 25%),
+                    linear-gradient(45deg, transparent 75%, #2d2d2d 75%),
+                    linear-gradient(-45deg, transparent 75%, #2d2d2d 75%);
+                background-color: #1c1c1c;
+            }
+
+            .onion-img {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+                object-position: center;
+            }
+
+            .onion-bottom {
+                position: relative;
+                max-height: 500px;
+            }
+
+            .onion-top {
+                max-height: 500px;
+                pointer-events: none;
+            }
+
+            .onion-controls {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 16px;
+                padding: 12px 16px;
+                background-color: var(--bgColor-muted);
+                border-top: 1px solid var(--borderColor-default);
+            }
+
+            .onion-slider-group {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .onion-slider-group input[type="range"] {
+                width: 150px;
+                cursor: pointer;
+            }
+
+            .onion-slider-label {
+                font-size: 12px;
+                color: var(--fgColor-muted);
+                min-width: 45px;
+            }
+
+            .onion-swap-btn {
+                font-size: 12px;
+                padding: 4px 12px;
+                border-radius: 4px;
+                border: 1px solid var(--borderColor-default);
+                background-color: var(--bgColor-default);
+                color: var(--fgColor-default);
+                cursor: pointer;
+            }
+
+            .onion-swap-btn:hover {
+                background-color: var(--bgColor-muted);
+            }
+
+            /* Blink/Flicker Mode Styles */
+            .blink-container {
+                border: 1px solid var(--borderColor-default);
+                border-radius: 8px;
+                overflow: hidden;
+                background-color: var(--bgColor-default);
+            }
+
+            .blink-images {
+                position: relative;
+                width: 100%;
+                min-height: 200px;
+                /* Checkerboard background for transparency */
+                background-image:
+                    linear-gradient(45deg, #e0e0e0 25%, transparent 25%),
+                    linear-gradient(-45deg, #e0e0e0 25%, transparent 25%),
+                    linear-gradient(45deg, transparent 75%, #e0e0e0 75%),
+                    linear-gradient(-45deg, transparent 75%, #e0e0e0 75%);
+                background-size: 16px 16px;
+                background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+                background-color: #f5f5f5;
+            }
+
+            [data-color-mode="dark"] .blink-images {
+                background-image:
+                    linear-gradient(45deg, #2d2d2d 25%, transparent 25%),
+                    linear-gradient(-45deg, #2d2d2d 25%, transparent 25%),
+                    linear-gradient(45deg, transparent 75%, #2d2d2d 75%),
+                    linear-gradient(-45deg, transparent 75%, #2d2d2d 75%);
+                background-color: #1c1c1c;
+            }
+
+            .blink-img {
+                max-width: 100%;
+                max-height: 500px;
+                object-fit: contain;
+                display: block;
+                margin: 0 auto;
+            }
+
+            .blink-controls {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 16px;
+                padding: 12px 16px;
+                background-color: var(--bgColor-muted);
+                border-top: 1px solid var(--borderColor-default);
+            }
+
+            .blink-play-btn {
+                font-size: 14px;
+                padding: 4px 16px;
+                border-radius: 4px;
+                border: 1px solid var(--borderColor-default);
+                background-color: var(--bgColor-default);
+                color: var(--fgColor-default);
+                cursor: pointer;
+                min-width: 70px;
+            }
+
+            .blink-play-btn:hover {
+                background-color: var(--bgColor-muted);
+            }
+
+            .blink-play-btn.playing {
+                background-color: var(--bgColor-attention-muted);
+                border-color: var(--borderColor-attention-muted);
+            }
+
+            .blink-speed-group {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .blink-speed-group select {
+                font-size: 12px;
+                padding: 4px 8px;
+                border-radius: 4px;
+                border: 1px solid var(--borderColor-default);
+                background-color: var(--bgColor-default);
+                color: var(--fgColor-default);
+                cursor: pointer;
+            }
+
+            .blink-indicator {
+                font-size: 12px;
+                color: var(--fgColor-muted);
+                min-width: 50px;
+                text-align: center;
+            }
+
+            .blink-indicator.before {
+                color: var(--fgColor-danger, #cf222e);
+            }
+
+            .blink-indicator.after {
+                color: var(--fgColor-success, #1a7f37);
+            }
+
+            /* Mode-specific controls row */
+            .image-diff-controls {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 16px;
+                padding: 8px 12px;
+                margin-bottom: 12px;
+                background-color: var(--bgColor-muted);
+                border: 1px solid var(--borderColor-default);
+                border-radius: 6px;
+                font-size: 12px;
+            }
         </style>
     </head>
     <body>
@@ -981,6 +1452,501 @@
                     );
                 }
 
+                // ImageDiff component for 2-Up, Swipe, Onion, and Blink modes
+                function ImageDiff({ baseUrl, headUrl, status, patch }) {
+                    const [mode, setMode] = useState(() => {
+                        const stored = localStorage.getItem("guck-image-diff-mode");
+                        return stored || "2up";
+                    });
+                    const [baseDims, setBaseDims] = useState(null);
+                    const [headDims, setHeadDims] = useState(null);
+                    const [baseError, setBaseError] = useState(false);
+                    const [headError, setHeadError] = useState(false);
+                    const [sliderValue, setSliderValue] = useState(50);
+
+                    // Onion skin state
+                    const [onionOpacity, setOnionOpacity] = useState(() => {
+                        const stored = localStorage.getItem("guck-image-onion-opacity");
+                        return stored ? parseInt(stored, 10) : 50;
+                    });
+                    const [onionSwapped, setOnionSwapped] = useState(() => {
+                        const stored = localStorage.getItem("guck-image-onion-swapped");
+                        return stored === "true";
+                    });
+
+                    // Blink mode state
+                    const [blinkHz, setBlinkHz] = useState(() => {
+                        const stored = localStorage.getItem("guck-image-blink-hz");
+                        return stored ? parseInt(stored, 10) : 4;
+                    });
+                    const [blinkPlaying, setBlinkPlaying] = useState(true);
+                    const [showBefore, setShowBefore] = useState(true);
+
+                    const handleModeChange = (newMode) => {
+                        setMode(newMode);
+                        localStorage.setItem("guck-image-diff-mode", newMode);
+                    };
+
+                    const handleOnionOpacityChange = (value) => {
+                        setOnionOpacity(value);
+                        localStorage.setItem("guck-image-onion-opacity", value.toString());
+                    };
+
+                    const handleOnionSwap = () => {
+                        const newValue = !onionSwapped;
+                        setOnionSwapped(newValue);
+                        localStorage.setItem("guck-image-onion-swapped", newValue.toString());
+                    };
+
+                    const handleBlinkHzChange = (value) => {
+                        setBlinkHz(value);
+                        localStorage.setItem("guck-image-blink-hz", value.toString());
+                    };
+
+                    // Blink effect
+                    React.useEffect(() => {
+                        if (mode !== "blink" || !blinkPlaying) return;
+                        const interval = setInterval(() => {
+                            setShowBefore(v => !v);
+                        }, 1000 / blinkHz);
+                        return () => clearInterval(interval);
+                    }, [mode, blinkHz, blinkPlaying]);
+
+                    const handleBaseLoad = (e) => {
+                        setBaseDims({
+                            width: e.target.naturalWidth,
+                            height: e.target.naturalHeight,
+                        });
+                    };
+
+                    const handleHeadLoad = (e) => {
+                        setHeadDims({
+                            width: e.target.naturalWidth,
+                            height: e.target.naturalHeight,
+                        });
+                    };
+
+                    const hasBothImages = baseUrl && headUrl;
+                    const showDimensionChange = baseDims && headDims &&
+                        (baseDims.width !== headDims.width || baseDims.height !== headDims.height);
+
+                    // Format dimensions like GitHub: "W: 533px | H: 533px"
+                    const formatDims = (dims, colorClass) => {
+                        if (!dims) return null;
+                        return (
+                            <div className={`image-meta ${colorClass || ''}`}>
+                                W: <span style={{ fontWeight: 500 }}>{dims.width}px</span> | H: <span style={{ fontWeight: 500 }}>{dims.height}px</span>
+                            </div>
+                        );
+                    };
+
+                    // Render 2-Up mode
+                    const render2Up = () => {
+                        if (!hasBothImages) {
+                            // Single image (added or deleted)
+                            const isAdded = status === "added";
+                            const dims = isAdded ? headDims : baseDims;
+                            const error = isAdded ? headError : baseError;
+                            const url = isAdded ? headUrl : baseUrl;
+                            const colorClass = isAdded ? "image-meta-addition" : "image-meta-deletion";
+                            const frameClass = isAdded ? "addition" : "deletion";
+
+                            return (
+                                <div className="image-diff-single">
+                                    <div className={`image-frame ${frameClass}`} style={{ maxWidth: "600px" }}>
+                                        {error ? (
+                                            <div className="image-error">Failed to load image</div>
+                                        ) : (
+                                            <>
+                                                <div className="image-frame-inner">
+                                                    <img
+                                                        src={url}
+                                                        alt={isAdded ? "Added" : "Deleted"}
+                                                        onLoad={isAdded ? handleHeadLoad : handleBaseLoad}
+                                                        onError={() => isAdded ? setHeadError(true) : setBaseError(true)}
+                                                    />
+                                                </div>
+                                                {formatDims(dims, colorClass)}
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        }
+
+                        return (
+                            <div className="image-diff-2up">
+                                <div className="image-frame deletion">
+                                    {baseError ? (
+                                        <div className="image-error">Failed to load image</div>
+                                    ) : (
+                                        <>
+                                            <div className="image-frame-inner">
+                                                <img
+                                                    src={baseUrl}
+                                                    alt="Before"
+                                                    onLoad={handleBaseLoad}
+                                                    onError={() => setBaseError(true)}
+                                                />
+                                            </div>
+                                            {formatDims(baseDims, "image-meta-deletion")}
+                                        </>
+                                    )}
+                                </div>
+                                <div className="image-frame addition">
+                                    {headError ? (
+                                        <div className="image-error">Failed to load image</div>
+                                    ) : (
+                                        <>
+                                            <div className="image-frame-inner">
+                                                <img
+                                                    src={headUrl}
+                                                    alt="After"
+                                                    onLoad={handleHeadLoad}
+                                                    onError={() => setHeadError(true)}
+                                                />
+                                            </div>
+                                            {formatDims(headDims, "image-meta-addition")}
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    };
+
+                    // Render Swipe mode - custom implementation with both images clipped
+                    const swipeContainerRef = React.useRef(null);
+                    const cachedRectRef = React.useRef(null);
+                    const [isDragging, setIsDragging] = React.useState(false);
+
+                    const handleDragStart = (e) => {
+                        e.preventDefault();
+                        // Cache bounding rect on drag start for performance
+                        if (swipeContainerRef.current) {
+                            cachedRectRef.current = swipeContainerRef.current.getBoundingClientRect();
+                        }
+                        setIsDragging(true);
+                    };
+
+                    const handleDragMove = React.useCallback((e) => {
+                        if (!isDragging || !cachedRectRef.current) return;
+
+                        const rect = cachedRectRef.current;
+                        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                        const x = clientX - rect.left;
+                        const percentage = Math.max(0, Math.min(100, (x / rect.width) * 100));
+                        setSliderValue(percentage);
+                    }, [isDragging]);
+
+                    const handleDragEnd = React.useCallback(() => {
+                        setIsDragging(false);
+                        cachedRectRef.current = null;
+                    }, []);
+
+                    // Keyboard handler for accessibility
+                    const handleKeyDown = React.useCallback((e) => {
+                        const step = e.shiftKey ? 10 : 1; // Larger steps with shift
+                        if (e.key === 'ArrowLeft') {
+                            e.preventDefault();
+                            setSliderValue(v => Math.max(0, v - step));
+                        } else if (e.key === 'ArrowRight') {
+                            e.preventDefault();
+                            setSliderValue(v => Math.min(100, v + step));
+                        } else if (e.key === 'Home') {
+                            e.preventDefault();
+                            setSliderValue(0);
+                        } else if (e.key === 'End') {
+                            e.preventDefault();
+                            setSliderValue(100);
+                        }
+                    }, []);
+
+                    // Add/remove global event listeners for drag
+                    React.useEffect(() => {
+                        if (isDragging) {
+                            document.addEventListener('mousemove', handleDragMove);
+                            document.addEventListener('mouseup', handleDragEnd);
+                            document.addEventListener('touchmove', handleDragMove);
+                            document.addEventListener('touchend', handleDragEnd);
+                        }
+                        return () => {
+                            document.removeEventListener('mousemove', handleDragMove);
+                            document.removeEventListener('mouseup', handleDragEnd);
+                            document.removeEventListener('touchmove', handleDragMove);
+                            document.removeEventListener('touchend', handleDragEnd);
+                        };
+                    }, [isDragging, handleDragMove, handleDragEnd]);
+
+                    const renderSwipe = () => {
+                        if (!hasBothImages) {
+                            return render2Up(); // Fallback to 2-up for single images
+                        }
+
+                        return (
+                            <div className="swipe-container">
+                                <div
+                                    className="swipe-images"
+                                    ref={swipeContainerRef}
+                                    onMouseDown={handleDragStart}
+                                    onTouchStart={handleDragStart}
+                                    style={{ cursor: isDragging ? 'ew-resize' : 'default' }}
+                                >
+                                    {/* Before image: show from left edge to slider */}
+                                    <img
+                                        src={baseUrl}
+                                        alt="Before"
+                                        className="swipe-img swipe-before"
+                                        style={{ clipPath: `inset(0 ${100 - sliderValue}% 0 0)` }}
+                                        onLoad={handleBaseLoad}
+                                        onError={() => setBaseError(true)}
+                                        draggable={false}
+                                    />
+                                    {/* After image: show from slider to right edge */}
+                                    <img
+                                        src={headUrl}
+                                        alt="After"
+                                        className="swipe-img swipe-after"
+                                        style={{ clipPath: `inset(0 0 0 ${sliderValue}%)` }}
+                                        onLoad={handleHeadLoad}
+                                        onError={() => setHeadError(true)}
+                                        draggable={false}
+                                    />
+                                    {/* Divider line with draggable handle */}
+                                    <div
+                                        className={`swipe-divider ${isDragging ? 'dragging' : ''}`}
+                                        style={{ left: `${sliderValue}%` }}
+                                        tabIndex={0}
+                                        role="slider"
+                                        aria-label="Image comparison slider"
+                                        aria-valuemin={0}
+                                        aria-valuemax={100}
+                                        aria-valuenow={Math.round(sliderValue)}
+                                        onKeyDown={handleKeyDown}
+                                    />
+                                </div>
+                                {(baseDims || headDims) && (
+                                    <div className="swipe-dimensions">
+                                        {baseDims && (
+                                            <span className="image-meta-deletion">
+                                                W: {baseDims.width}px | H: {baseDims.height}px
+                                            </span>
+                                        )}
+                                        <span style={{ margin: "0 16px" }}>→</span>
+                                        {headDims && (
+                                            <span className="image-meta-addition">
+                                                W: {headDims.width}px | H: {headDims.height}px
+                                            </span>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    };
+
+                    // Render Onion Skin mode
+                    const renderOnion = () => {
+                        if (!hasBothImages) {
+                            return render2Up(); // Fallback to 2-up for single images
+                        }
+
+                        // Determine which image is on top based on swap state
+                        const bottomUrl = onionSwapped ? headUrl : baseUrl;
+                        const topUrl = onionSwapped ? baseUrl : headUrl;
+                        const bottomAlt = onionSwapped ? "After" : "Before";
+                        const topAlt = onionSwapped ? "Before" : "After";
+
+                        return (
+                            <div className="onion-container">
+                                <div className="onion-images">
+                                    {/* Bottom image (fully visible) */}
+                                    <img
+                                        src={bottomUrl}
+                                        alt={bottomAlt}
+                                        className="onion-img onion-bottom"
+                                        onLoad={onionSwapped ? handleHeadLoad : handleBaseLoad}
+                                        onError={() => onionSwapped ? setHeadError(true) : setBaseError(true)}
+                                    />
+                                    {/* Top image (with opacity) */}
+                                    <img
+                                        src={topUrl}
+                                        alt={topAlt}
+                                        className="onion-img onion-top"
+                                        style={{ opacity: onionOpacity / 100 }}
+                                        onLoad={onionSwapped ? handleBaseLoad : handleHeadLoad}
+                                        onError={() => onionSwapped ? setBaseError(true) : setHeadError(true)}
+                                    />
+                                </div>
+                                <div className="onion-controls">
+                                    <div className="onion-slider-group">
+                                        <span className="onion-slider-label">Opacity:</span>
+                                        <input
+                                            type="range"
+                                            min="0"
+                                            max="100"
+                                            value={onionOpacity}
+                                            onChange={(e) => handleOnionOpacityChange(parseInt(e.target.value, 10))}
+                                        />
+                                        <span className="onion-slider-label">{onionOpacity}%</span>
+                                    </div>
+                                    <button className="onion-swap-btn" onClick={handleOnionSwap}>
+                                        {onionSwapped ? "Before on top" : "After on top"}
+                                    </button>
+                                    <span style={{ fontSize: "11px", color: "var(--fgColor-muted)" }}>
+                                        (Currently: {onionSwapped ? "Before" : "After"} over {onionSwapped ? "After" : "Before"})
+                                    </span>
+                                </div>
+                            </div>
+                        );
+                    };
+
+                    // Render Blink/Flicker mode
+                    const renderBlink = () => {
+                        if (!hasBothImages) {
+                            return render2Up(); // Fallback to 2-up for single images
+                        }
+
+                        const currentUrl = showBefore ? baseUrl : headUrl;
+                        const currentAlt = showBefore ? "Before" : "After";
+
+                        return (
+                            <div className="blink-container">
+                                <div className="blink-images">
+                                    <img
+                                        src={currentUrl}
+                                        alt={currentAlt}
+                                        className="blink-img"
+                                        onLoad={showBefore ? handleBaseLoad : handleHeadLoad}
+                                        onError={() => showBefore ? setBaseError(true) : setHeadError(true)}
+                                    />
+                                </div>
+                                <div className="blink-controls">
+                                    <button
+                                        className={`blink-play-btn ${blinkPlaying ? "playing" : ""}`}
+                                        onClick={() => setBlinkPlaying(!blinkPlaying)}
+                                    >
+                                        {blinkPlaying ? "Pause" : "Play"}
+                                    </button>
+                                    <div className="blink-speed-group">
+                                        <span style={{ fontSize: "12px", color: "var(--fgColor-muted)" }}>Speed:</span>
+                                        <select
+                                            value={blinkHz}
+                                            onChange={(e) => handleBlinkHzChange(parseInt(e.target.value, 10))}
+                                        >
+                                            <option value="2">2 Hz</option>
+                                            <option value="3">3 Hz</option>
+                                            <option value="4">4 Hz</option>
+                                            <option value="5">5 Hz</option>
+                                            <option value="6">6 Hz</option>
+                                        </select>
+                                    </div>
+                                    <span className={`blink-indicator ${showBefore ? "before" : "after"}`}>
+                                        {showBefore ? "Before" : "After"}
+                                    </span>
+                                </div>
+                            </div>
+                        );
+                    };
+
+                    // Get current render function based on mode
+                    const renderContent = () => {
+                        switch (mode) {
+                            case "swipe":
+                                return renderSwipe();
+                            case "onion":
+                                return renderOnion();
+                            case "blink":
+                                return renderBlink();
+                            case "2up":
+                            default:
+                                return render2Up();
+                        }
+                    };
+
+                    return (
+                        <div className="image-diff-container">
+                            {/* Mode toggle - only show if we have both images */}
+                            {hasBothImages && (
+                                <div className="image-diff-mode-toggle">
+                                    <button
+                                        className={mode === "2up" ? "active" : ""}
+                                        onClick={() => handleModeChange("2up")}
+                                    >
+                                        2-Up
+                                    </button>
+                                    <button
+                                        className={mode === "swipe" ? "active" : ""}
+                                        onClick={() => handleModeChange("swipe")}
+                                    >
+                                        Swipe
+                                    </button>
+                                    <button
+                                        className={mode === "onion" ? "active" : ""}
+                                        onClick={() => handleModeChange("onion")}
+                                    >
+                                        Onion
+                                    </button>
+                                    <button
+                                        className={mode === "blink" ? "active" : ""}
+                                        onClick={() => handleModeChange("blink")}
+                                    >
+                                        Blink
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Dimension change indicator */}
+                            {showDimensionChange && (
+                                <div className="dimension-change">
+                                    <span>Size changed:</span>
+                                    <span>{baseDims.width} × {baseDims.height}</span>
+                                    <span>→</span>
+                                    <span>{headDims.width} × {headDims.height}</span>
+                                </div>
+                            )}
+
+                            {/* Render based on mode */}
+                            {renderContent()}
+
+                            {/* Optional: Show pointer diff for LFS files */}
+                            {patch && patch.includes("git-lfs.github.com") && (
+                                <details className="pointer-diff-toggle">
+                                    <summary>Show LFS pointer diff</summary>
+                                    <div className="file-diff-content mt-2">
+                                        {patch
+                                            .split("\n")
+                                            .filter((line) => {
+                                                return !(
+                                                    line.startsWith("diff --git") ||
+                                                    line.startsWith("index ") ||
+                                                    line.startsWith("--- ") ||
+                                                    line.startsWith("+++ ") ||
+                                                    line.startsWith("new file mode") ||
+                                                    line.startsWith("old file mode") ||
+                                                    line.startsWith("deleted file mode") ||
+                                                    line.startsWith("@@")
+                                                );
+                                            })
+                                            .map((line, index) => {
+                                                if (line.length === 0) return null;
+                                                const prefix = line[0];
+                                                let lineClass = "context";
+                                                if (prefix === "+") lineClass = "addition";
+                                                else if (prefix === "-") lineClass = "deletion";
+
+                                                return (
+                                                    <div key={index} className={`diff-line ${lineClass}`}>
+                                                        <span className="diff-line-number">{index + 1}</span>
+                                                        <span className="diff-line-content">{line.slice(1)}</span>
+                                                    </div>
+                                                );
+                                            })}
+                                    </div>
+                                </details>
+                            )}
+                        </div>
+                    );
+                }
+
                 if (loading) {
                     return (
                         <div className="container-lg p-4">
@@ -1154,25 +2120,34 @@
                                                 </div>
                                                 {isExpanded && (
                                                     <div className="Box-body p-0">
-                                                        <div className="file-diff-content">
-                                                            {file.patch
-                                                                .split("\n")
-                                                                .filter((line) => {
-                                                                    return !(
-                                                                        line.startsWith("diff --git") ||
-                                                                        line.startsWith("index ") ||
-                                                                        line.startsWith("--- ") ||
-                                                                        line.startsWith("+++ ") ||
-                                                                        line.startsWith("new file mode") ||
-                                                                        line.startsWith("old file mode") ||
-                                                                        line.startsWith("deleted file mode") ||
-                                                                        line.startsWith("@@")
-                                                                    );
-                                                                })
-                                                                .map((line, index) =>
-                                                                    renderDiffLine(line, index, file.path, comments[file.path] || [])
-                                                                )}
-                                                        </div>
+                                                        {file.is_image ? (
+                                                            <ImageDiff
+                                                                baseUrl={file.image_base_url}
+                                                                headUrl={file.image_head_url}
+                                                                status={file.status}
+                                                                patch={file.patch}
+                                                            />
+                                                        ) : (
+                                                            <div className="file-diff-content">
+                                                                {file.patch
+                                                                    .split("\n")
+                                                                    .filter((line) => {
+                                                                        return !(
+                                                                            line.startsWith("diff --git") ||
+                                                                            line.startsWith("index ") ||
+                                                                            line.startsWith("--- ") ||
+                                                                            line.startsWith("+++ ") ||
+                                                                            line.startsWith("new file mode") ||
+                                                                            line.startsWith("old file mode") ||
+                                                                            line.startsWith("deleted file mode") ||
+                                                                            line.startsWith("@@")
+                                                                        );
+                                                                    })
+                                                                    .map((line, index) =>
+                                                                        renderDiffLine(line, index, file.path, comments[file.path] || [])
+                                                                    )}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 )}
                                             </div>
@@ -1294,8 +2269,15 @@
                                                     </div>
                                                 </div>
                                                 {isExpanded && (
-                                                    <>
-                                                        <div className="Box-body p-0">
+                                                    <div className="Box-body p-0">
+                                                        {file.is_image ? (
+                                                            <ImageDiff
+                                                                baseUrl={file.image_base_url}
+                                                                headUrl={file.image_head_url}
+                                                                status={file.status}
+                                                                patch={file.patch}
+                                                            />
+                                                        ) : (
                                                             <div className="file-diff-content">
                                                                 {file.patch
                                                                     .split("\n")
@@ -1348,8 +2330,8 @@
                                                                             ),
                                                                     )}
                                                             </div>
-                                                        </div>
-                                                    </>
+                                                        )}
+                                                    </div>
                                                 )}
                                             </div>
                                         );
