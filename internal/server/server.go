@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"sync"
 
 	"github.com/gorilla/mux"
@@ -27,18 +28,24 @@ type DiffResponse struct {
 	UncommittedFiles []FileDiff `json:"uncommitted_files,omitempty"`
 	Branch           string     `json:"branch"`
 	Commit           string     `json:"commit"`
+	BaseCommit       string     `json:"base_commit,omitempty"`
 	RepoPath         string     `json:"repo_path"`
 	RemoteURL        string     `json:"remote_url,omitempty"`
 }
 
 type FileDiff struct {
 	Path          string `json:"path"`
+	FromPath      string `json:"from_path,omitempty"`
+	ToPath        string `json:"to_path,omitempty"`
 	Status        string `json:"status"`
 	Additions     int    `json:"additions"`
 	Deletions     int    `json:"deletions"`
 	Patch         string `json:"patch"`
 	Viewed        bool   `json:"viewed"`
 	StagingStatus string `json:"staging_status,omitempty"`
+	IsImage       bool   `json:"is_image,omitempty"`
+	ImageBaseURL  string `json:"image_base_url,omitempty"`
+	ImageHeadURL  string `json:"image_head_url,omitempty"`
 }
 
 type MarkViewedRequest struct {
@@ -103,6 +110,7 @@ func Start(port int, baseBranch string) error {
 	r := mux.NewRouter()
 	r.HandleFunc("/", appState.indexHandler).Methods("GET")
 	r.HandleFunc("/api/diff", appState.diffHandler).Methods("GET")
+	r.HandleFunc("/api/blob", appState.blobHandler).Methods("GET")
 	r.HandleFunc("/api/mark-viewed", appState.markViewedHandler).Methods("POST")
 	r.HandleFunc("/api/unmark-viewed", appState.unmarkViewedHandler).Methods("POST")
 	r.HandleFunc("/api/status", appState.statusHandler).Methods("GET")
@@ -149,25 +157,56 @@ func (s *AppState) diffHandler(w http.ResponseWriter, r *http.Request) {
 
 	remoteURL, _ := gitRepo.GetRemoteURL() // Ignore error, remote is optional
 
-	files, err := gitRepo.GetDiffFiles(s.BaseBranch)
+	diffResult, err := gitRepo.GetDiffFiles(s.BaseBranch)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	fileDiffs := []FileDiff{}
-	for _, file := range files {
+	for _, file := range diffResult.Files {
 		viewed := s.StateManager.IsFileViewed(s.RepoPath, currentBranch, currentCommit, file.Path)
 
-		fileDiffs = append(fileDiffs, FileDiff{
+		fileDiff := FileDiff{
 			Path:          file.Path,
+			FromPath:      file.FromPath,
+			ToPath:        file.ToPath,
 			Status:        file.Status,
 			Additions:     file.Additions,
 			Deletions:     file.Deletions,
 			Patch:         file.Patch,
 			Viewed:        viewed,
 			StagingStatus: string(git.StagingStatusCommitted),
-		})
+		}
+
+		// Populate image URLs for image files
+		if git.IsImagePath(file.Path) {
+			fileDiff.IsImage = true
+
+			// Determine base path (for renames, use FromPath; otherwise use Path)
+			basePath := file.Path
+			if file.FromPath != "" {
+				basePath = file.FromPath
+			}
+
+			// Determine head path (for renames, use ToPath; otherwise use Path)
+			headPath := file.Path
+			if file.ToPath != "" {
+				headPath = file.ToPath
+			}
+
+			// Base URL (not for added files)
+			if file.Status != "added" {
+				fileDiff.ImageBaseURL = buildBlobURL("commit", diffResult.BaseCommit, basePath)
+			}
+
+			// Head URL (not for deleted files)
+			if file.Status != "deleted" {
+				fileDiff.ImageHeadURL = buildBlobURL("commit", diffResult.HeadCommit, headPath)
+			}
+		}
+
+		fileDiffs = append(fileDiffs, fileDiff)
 	}
 
 	// Get uncommitted changes
@@ -179,15 +218,42 @@ func (s *AppState) diffHandler(w http.ResponseWriter, r *http.Request) {
 			uncommittedCommit := "__uncommitted__"
 			viewed := s.StateManager.IsFileViewed(s.RepoPath, currentBranch, uncommittedCommit, file.Path+":"+string(file.StagingStatus))
 
-			uncommittedFileDiffs = append(uncommittedFileDiffs, FileDiff{
+			fileDiff := FileDiff{
 				Path:          file.Path,
+				FromPath:      file.FromPath,
+				ToPath:        file.ToPath,
 				Status:        file.Status,
 				Additions:     file.Additions,
 				Deletions:     file.Deletions,
 				Patch:         file.Patch,
 				Viewed:        viewed,
 				StagingStatus: string(file.StagingStatus),
-			})
+			}
+
+			// Populate image URLs for uncommitted image files
+			if git.IsImagePath(file.Path) {
+				fileDiff.IsImage = true
+
+				if file.StagingStatus == git.StagingStatusStaged {
+					// Staged: base is HEAD, head is index
+					if file.Status != "added" {
+						fileDiff.ImageBaseURL = buildBlobURL("commit", "HEAD", file.Path)
+					}
+					if file.Status != "deleted" {
+						fileDiff.ImageHeadURL = buildBlobURL("index", "", file.Path)
+					}
+				} else {
+					// Unstaged: base is index (or HEAD), head is worktree
+					if file.Status != "added" {
+						fileDiff.ImageBaseURL = buildBlobURL("index", "", file.Path)
+					}
+					if file.Status != "deleted" {
+						fileDiff.ImageHeadURL = buildBlobURL("worktree", "", file.Path)
+					}
+				}
+			}
+
+			uncommittedFileDiffs = append(uncommittedFileDiffs, fileDiff)
 		}
 	}
 
@@ -196,12 +262,82 @@ func (s *AppState) diffHandler(w http.ResponseWriter, r *http.Request) {
 		UncommittedFiles: uncommittedFileDiffs,
 		Branch:           currentBranch,
 		Commit:           currentCommit,
+		BaseCommit:       diffResult.BaseCommit,
 		RepoPath:         s.RepoPath,
 		RemoteURL:        remoteURL,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(response) // Ignore encode error for HTTP response
+}
+
+// buildBlobURL constructs a URL for the /api/blob endpoint
+func buildBlobURL(source, ref, path string) string {
+	params := url.Values{}
+	params.Set("source", source)
+	if ref != "" {
+		params.Set("ref", ref)
+	}
+	params.Set("path", path)
+	return "/api/blob?" + params.Encode()
+}
+
+// blobHandler serves blob content for images with LFS support
+func (s *AppState) blobHandler(w http.ResponseWriter, r *http.Request) {
+	source := r.URL.Query().Get("source")
+	ref := r.URL.Query().Get("ref")
+	path := r.URL.Query().Get("path")
+
+	if path == "" {
+		http.Error(w, "path parameter is required", http.StatusBadRequest)
+		return
+	}
+
+	if source != "commit" && source != "index" && source != "worktree" {
+		http.Error(w, "source must be 'commit', 'index', or 'worktree'", http.StatusBadRequest)
+		return
+	}
+
+	if source == "commit" && ref == "" {
+		http.Error(w, "ref parameter is required when source is 'commit'", http.StatusBadRequest)
+		return
+	}
+
+	gitRepo, err := git.Open(".")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var content []byte
+	switch source {
+	case "commit":
+		content, err = gitRepo.ReadBlobCommit(ref, path)
+	case "index":
+		content, err = gitRepo.ReadBlobIndex(path)
+	case "worktree":
+		content, err = gitRepo.ReadBlobWorktree(path)
+	}
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	// Set appropriate headers
+	contentType := git.GetMIMEType(path)
+	w.Header().Set("Content-Type", contentType)
+
+	// Set caching headers
+	if source == "commit" {
+		// Committed content is immutable, cache aggressively
+		w.Header().Set("Cache-Control", "private, max-age=31536000, immutable")
+	} else {
+		// Index and worktree content can change, don't cache
+		w.Header().Set("Cache-Control", "no-store")
+	}
+
+	_, _ = w.Write(content)
 }
 
 func (s *AppState) markViewedHandler(w http.ResponseWriter, r *http.Request) {
