@@ -187,6 +187,39 @@ func TestGetUncommittedChangesUnstagedModification(t *testing.T) {
 	}
 }
 
+func TestGetUncommittedChangesWithColorAlways(t *testing.T) {
+	tempDir := setupTestRepo(t)
+	runGit(t, tempDir, "config", "color.ui", "always")
+
+	readmePath := filepath.Join(tempDir, "README.md")
+	if err := os.WriteFile(readmePath, []byte("# Modified Repo\n"), 0644); err != nil {
+		t.Fatalf("Failed to modify file: %v", err)
+	}
+
+	repo, err := Open(tempDir)
+	if err != nil {
+		t.Fatalf("Failed to open repo: %v", err)
+	}
+
+	files, err := repo.GetUncommittedChanges()
+	if err != nil {
+		t.Fatalf("Failed to get uncommitted changes: %v", err)
+	}
+
+	if len(files) != 1 {
+		t.Fatalf("Expected 1 uncommitted change, got %d", len(files))
+	}
+
+	if strings.Contains(files[0].Patch, "\x1b[") {
+		t.Errorf("Patch contains ANSI escape sequences: %q", files[0].Patch)
+	}
+
+	// The escapes also break the +/- prefix matching that counts lines.
+	if files[0].Additions != 1 || files[0].Deletions != 1 {
+		t.Errorf("Expected 1 addition and 1 deletion, got %d and %d", files[0].Additions, files[0].Deletions)
+	}
+}
+
 func TestGetUncommittedChangesStagedModification(t *testing.T) {
 	tempDir := setupTestRepo(t)
 

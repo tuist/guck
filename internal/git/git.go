@@ -296,14 +296,17 @@ func (r *Repo) getFileInfoWithGitDiff(repoPath, filePath string, statusCode git.
 		status = "added"
 	}
 
-	// Use git diff command for proper unified diff
+	// Use git diff command for proper unified diff. --no-color is required
+	// because color.ui=always colours piped output too, and those escape
+	// sequences would end up rendered literally in the patch and would stop
+	// the +/- prefixes below from matching.
 	var cmd *exec.Cmd
 	if stagingStatus == StagingStatusStaged {
 		// Staged changes: compare index to HEAD
-		cmd = exec.Command("git", "diff", "--cached", "--", filePath)
+		cmd = exec.Command("git", "diff", "--no-color", "--cached", "--", filePath)
 	} else {
 		// Unstaged changes: compare worktree to index
-		cmd = exec.Command("git", "diff", "--", filePath)
+		cmd = exec.Command("git", "diff", "--no-color", "--", filePath)
 	}
 	cmd.Dir = repoPath
 
