@@ -37,6 +37,10 @@ type FileInfo struct {
 func Open(path string) (*Repo, error) {
 	repo, err := git.PlainOpenWithOptions(path, &git.PlainOpenOptions{
 		DetectDotGit: true,
+		// Linked worktrees have a .git file pointing at
+		// .git/worktrees/<name>, whose refs live in the common dir. Without
+		// this, HEAD resolution fails and the whole repository is unusable.
+		EnableDotGitCommonDir: true,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to find git repository: %w", err)

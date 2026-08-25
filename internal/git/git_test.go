@@ -55,6 +55,27 @@ func TestOpen(t *testing.T) {
 	}
 }
 
+func TestOpenLinkedWorktree(t *testing.T) {
+	tempDir := setupTestRepo(t)
+
+	worktreeDir := filepath.Join(t.TempDir(), "linked")
+	runGit(t, tempDir, "worktree", "add", "-b", "feature", worktreeDir)
+
+	repo, err := Open(worktreeDir)
+	if err != nil {
+		t.Fatalf("Failed to open linked worktree: %v", err)
+	}
+
+	branch, err := repo.CurrentBranch()
+	if err != nil {
+		t.Fatalf("Failed to get current branch: %v", err)
+	}
+
+	if branch != "feature" {
+		t.Fatalf("Expected branch %q, got %q", "feature", branch)
+	}
+}
+
 func TestOpenNonGitDirectory(t *testing.T) {
 	tempDir := t.TempDir()
 
